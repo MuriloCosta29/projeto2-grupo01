@@ -212,3 +212,6 @@ db.sqlite3
 media/
 staticfiles/
 .env
+
+# Mac file.
+.DS_Store
