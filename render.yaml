@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: presidente-de-rua-api
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: cd src && gunicorn core.wsgi:application
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: ".onrender.com"
+      - key: PYTHON_VERSION
+        value: "3.13.5"
