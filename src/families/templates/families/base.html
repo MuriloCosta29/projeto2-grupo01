@@ -1,0 +1,39 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0F172A">
+  <title>{% block title %}Presidente de Rua{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'families/css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="{% url 'families:home' %}" aria-label="Presidente de Rua">
+      <span class="brand-mark">PR</span>
+      <span>
+        <strong>Presidente de Rua</strong>
+        <small>Logística G10 Favelas</small>
+      </span>
+    </a>
+    <nav class="top-nav" aria-label="Navegação principal">
+      <a href="{% url 'families:create' %}">Cadastrar</a>
+    </nav>
+  </header>
+
+  {% if messages %}
+    <div class="messages" aria-live="polite">
+      {% for message in messages %}
+        <div class="message message-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main class="page-shell">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>
