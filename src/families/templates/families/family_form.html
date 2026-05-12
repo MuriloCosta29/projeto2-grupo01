@@ -1,0 +1,28 @@
+{% extends "families/base.html" %}
+{% block title %}Cadastrar Família | Presidente de Rua{% endblock %}
+{% block content %}
+<section class="page-title compact">
+  <p class="eyebrow">US01 e US02</p>
+  <h1>Cadastrar nova família</h1>
+</section>
+
+<form class="form-card" method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-alert">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-grid">
+    {% for field in form %}
+      <label class="field {% if field.name == 'observacoes' %}span-2{% endif %}">
+        <span>{{ field.label }}{% if field.field.required %} *{% endif %}</span>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {% for error in field.errors %}<em>{{ error }}</em>{% endfor %}
+      </label>
+    {% endfor %}
+  </div>
+  <div class="form-actions">
+    <a class="btn btn-outline" href="{% url 'families:home' %}">Cancelar</a>
+    <button class="btn btn-primary" type="submit">Salvar família</button>
+  </div>
+  <p class="scope-note">Escopo atual: US01 e US02. As demais histórias ficam para próximas etapas.</p>
+</form>
+{% endblock %}
