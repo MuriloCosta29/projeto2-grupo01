@@ -128,5 +128,5 @@ STORAGES = {
 
 if not DEBUG:
     STORAGES["staticfiles"] = {
-        "BACKEND": "whitenoise.storage.CompressedManifestSaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     }
