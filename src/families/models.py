@@ -32,3 +32,24 @@ class Family(models.Model):
 
     def get_absolute_url(self):
         return reverse("families:create")
+
+
+class DeliveryLog(models.Model):
+    family = models.ForeignKey(  # Liga a entrega a familia
+        Family,
+        on_delete=models.CASCADE,
+        related_name="deliveries",
+    )
+    delivery_date = models.DateField()  # Data em que a cesta foi entrega
+    notes = models.TextField(blank=True)  # Observação opcional
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )  # Quando o registro foi criado no sistema
+
+    class Meta:
+        ordering = ["-delivery_date", "-created_at"]
+        verbose_name = "entrega"
+        verbose_name_plural = "entregas"
+
+    def __str__(self):
+        return f"{self.family} - {self.delivery_date:%d/%m/%Y}"
