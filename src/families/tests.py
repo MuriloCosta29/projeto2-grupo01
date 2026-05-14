@@ -1,4 +1,3 @@
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
@@ -9,27 +8,29 @@ from .models import DeliveryLog, Family
 class FamilyModelTests(TestCase):
     def test_family_can_be_created_without_cep(self):
         family = Family.objects.create(
-            nome_responsavel="Maria Silva",
-            codigo_viela="Viela 01",
+            nome_responsavel="Carlos Oliveira",
+            codigo_viela="Viela Azul",
             quantidade_moradores=4,
             cep="",
         )
 
         self.assertEqual(family.cep, "")
-        self.assertEqual(str(family), "Maria Silva - Viela 01")
+        self.assertEqual(family.nome_responsavel, "Carlos Oliveira")
+        self.assertEqual(family.codigo_viela, "viela azul")
+        self.assertEqual(str(family), "Carlos Oliveira - viela azul")
 
     def test_duplicate_family_by_name_and_alley_is_blocked_by_database(self):
         Family.objects.create(
-            nome_responsavel="Maria Silva",
-            codigo_viela="Viela 01",
+            nome_responsavel="Carlos Oliveira",
+            codigo_viela="Viela Azul",
             quantidade_moradores=4,
         )
 
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 Family.objects.create(
-                    nome_responsavel="Maria Silva",
-                    codigo_viela="Viela 01",
+                    nome_responsavel="carlos oliveira",
+                    codigo_viela="viela azul",
                     quantidade_moradores=3,
                 )
 
@@ -37,16 +38,16 @@ class FamilyModelTests(TestCase):
 class FamilyFormTests(TestCase):
     def test_duplicate_family_by_name_and_alley_is_blocked_by_form(self):
         Family.objects.create(
-            nome_responsavel="Maria Silva",
-            codigo_viela="Viela 01",
+            nome_responsavel="Carlos Oliveira",
+            codigo_viela="Viela Azul",
             quantidade_moradores=4,
         )
 
         form = FamilyForm(
             data={
-                "nome_responsavel": "maria silva",
+                "nome_responsavel": "carlos oliveira",
                 "telefone": "",
-                "codigo_viela": "viela 01",
+                "codigo_viela": "viela azul",
                 "complemento": "",
                 "bairro": "",
                 "cep": "",
@@ -64,8 +65,8 @@ class FamilyFormTests(TestCase):
 class DeliveryLogModelTests(TestCase):
     def test_family_can_have_multiple_delivery_logs(self):
         family = Family.objects.create(
-            nome_responsavel="Maria Silva",
-            codigo_viela="Viela 01",
+            nome_responsavel="Carlos Oliveira",
+            codigo_viela="Viela Azul",
             quantidade_moradores=4,
         )
 
