@@ -4,9 +4,15 @@ import type { Family } from "../types";
 
 type FamilyListProps = {
   families: Family[];
+  selectedFamilyId: number | null;
+  onSelectFamily: (family: Family) => void;
 };
 
-export function FamilyList({ families }: FamilyListProps) {
+export function FamilyList({
+  families,
+  selectedFamilyId,
+  onSelectFamily,
+}: FamilyListProps) {
   if (families.length === 0) {
     return (
       <section className="panel">
@@ -22,17 +28,25 @@ export function FamilyList({ families }: FamilyListProps) {
 
       <div className="family-list">
         {families.map((family) => (
-          <article key={family.id} className="family-card">
+          <button
+            key={family.id}
+            type="button"
+            className={
+              family.id === selectedFamilyId
+                ? "family-card family-card-selected"
+                : "family-card"
+            }
+            onClick={() => onSelectFamily(family)}
+          >
             <strong>{family.nome_responsavel}</strong>
             <span>{family.codigo_viela}</span>
             <small>
               {family.quantidade_moradores} moradores
               {family.bairro ? ` · ${family.bairro}` : ""}
             </small>
-          </article>
+          </button>
         ))}
       </div>
     </section>
   );
 }
-

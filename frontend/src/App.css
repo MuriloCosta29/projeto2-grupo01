@@ -78,7 +78,78 @@
 }
 
 .family-card {
+  display: grid;
+  gap: 4px;
+  width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 16px;
+  background: white;
+  color: #0f172a;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.family-card:hover,
+.family-card-selected {
+  border-color: #009689;
+  background: #ecfeff;
+}
+
+.family-card span {
+  color: #009689;
+  font-weight: 700;
+}
+
+.family-card small {
+  color: #64748b;
+}
+
+.family-detail-header {
+  display: grid;
+  gap: 4px;
+  border-left: 4px solid #009689;
+  padding-left: 16px;
+  margin-bottom: 16px;
+}
+
+.family-detail-header span {
+  color: #009689;
+  font-weight: 700;
+}
+
+.family-detail-header small {
+  color: #64748b;
+}
+
+.delivery-list {
+  display: grid;
+  gap: 12px;
+}
+
+.delivery-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.delivery-card p {
+  margin-bottom: 0;
+  color: #64748b;
+}
+
+.status {
+  max-width: 960px;
+  margin: 16px auto 0;
+  font-weight: 700;
+}
+
+.status.error {
+  color: #dc2626;
+}
+
+.status.success {
+  color: #047857;
 }
