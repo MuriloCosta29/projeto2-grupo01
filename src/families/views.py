@@ -40,7 +40,7 @@ def families_api(request):
         return add_cors_headers(JsonResponse({}))
 
     if request.method == "GET":
-        families = Family.objects.all()
+        families = Family.objects.prefetch_related("deliveries").all()
 
         data = [
             {
@@ -55,6 +55,15 @@ def families_api(request):
                 "estado": family.estado,
                 "quantidade_moradores": family.quantidade_moradores,
                 "observacoes": family.observacoes,
+                "deliveries": [
+                    {
+                        "id": delivery.id,
+                        "delivery_date": delivery.delivery_date.isoformat(),
+                        "notes": delivery.notes,
+                        "created_at": delivery.created_at.isoformat(),
+                    }
+                    for delivery in family.deliveries.all()
+                ],
             }
             for family in families
         ]
