@@ -33,6 +33,23 @@ class Family(models.Model):
     def get_absolute_url(self):
         return reverse("families:create")
 
+    # Remove espaço no começo/fim;
+    # Remove espaços duplicados no meio;
+    # Salva código_viela sempre em minúsculo;
+    # Adicionei isso depois de perceber que se escrever uma letra diferente
+    # em código_viela mesmo assim havia o cadastro;
+    def save(self, *args, **kwargs):
+        self.nome_responsavel = self.nome_responsavel.strip()
+        self.codigo_viela = self.codigo_viela.strip()
+
+        if self.nome_responsavel:
+            self.nome_responsavel = " ".join(self.nome_responsavel.split()).title()
+
+        if self.codigo_viela:
+            self.codigo_viela = " ".join(self.codigo_viela.split()).lower()
+
+        super().save(*args, **kwargs)
+
 
 class DeliveryLog(models.Model):
     family = models.ForeignKey(  # Liga a entrega a familia
