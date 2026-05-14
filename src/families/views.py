@@ -1,5 +1,9 @@
+from django.db import IntegrityError
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.views.generic import CreateView, TemplateView
+from django.http import JsonResponse
+import json
 
 from .forms import FamilyForm
 from .models import Family
@@ -21,3 +25,81 @@ class FamilyCreateView(CreateView):
     def form_invalid(self, form):
         messages.error(self.request, "Revise os campos obrigatórios antes de salvar.")
         return super().form_invalid(form)
+
+
+def add_cors_headers(response):
+    response["Access-Control-Allow-Origin"] = "*"
+    response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
+
+@csrf_exempt
+def families_api(request):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method == "GET":
+        families = Family.objects.all()
+
+        data = [
+            {
+                "id": family.id,
+                "nome_responsavel": family.nome_responsavel,
+                "telefone": family.telefone,
+                "codigo_viela": family.codigo_viela,
+                "complemento": family.complemento,
+                "bairro": family.bairro,
+                "cep": family.cep,
+                "cidade": family.cidade,
+                "estado": family.estado,
+                "quantidade_moradores": family.quantidade_moradores,
+                "observacoes": family.observacoes,
+            }
+            for family in families
+        ]
+
+        return add_cors_headers(JsonResponse(data, safe=False))
+
+    if request.method == "POST":
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            return add_cors_headers(
+                JsonResponse({"error": "JSON inválido."}, status=400)
+            )
+
+        try:
+            family = Family.objects.create(
+                nome_responsavel=payload.get("nome_responsavel", ""),
+                quantidade_moradores=payload.get("quantidade_moradores") or 1,
+                codigo_viela=payload.get("codigo_viela", ""),
+                cep=payload.get("cep", ""),
+            )
+        except IntegrityError:
+            return add_cors_headers(
+                JsonResponse(
+                    {"error": "Atenção: Possível duplicidade de morador encontrada."},
+                    status=400,
+                )
+            )
+
+        data = {
+            "id": family.id,
+            "nome_responsavel": family.nome_responsavel,
+            "telefone": family.telefone,
+            "codigo_viela": family.codigo_viela,
+            "complemento": family.complemento,
+            "bairro": family.bairro,
+            "cep": family.cep,
+            "cidade": family.cidade,
+            "estado": family.estado,
+            "quantidade_moradores": family.quantidade_moradores,
+            "observacoes": family.observacoes,
+        }
+
+        return add_cors_headers(JsonResponse(data, status=201))
+
+    return add_cors_headers(
+        JsonResponse({"error": "Método não permitido."}, status=405)
+    )
