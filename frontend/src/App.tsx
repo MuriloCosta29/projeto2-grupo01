@@ -7,6 +7,8 @@ import { FamilyDetails } from "./components/FamilyDetails";
 import { getFamilies, registerDelivery } from "./services/api";
 import type { Family } from "./types";
 
+type OperationalStatusFilter = "all" | "pending" | "received";
+
 function App() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
@@ -15,6 +17,28 @@ function App() {
   const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
   const [deliverySuccess, setDeliverySuccess] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<OperationalStatusFilter>("all");
+
+  const pendingFamilies = families.filter(
+    (family) => !family.deliveries || family.deliveries.length === 0,
+  );
+  const receivedFamilies = families.filter(
+    (family) => family.deliveries && family.deliveries.length > 0,
+  );
+  const filteredFamilies = families.filter((family) => {
+    const hasDelivery = family.deliveries && family.deliveries.length > 0;
+
+    if (statusFilter === "pending") {
+      return !hasDelivery;
+    }
+
+    if (statusFilter === "received") {
+      return hasDelivery;
+    }
+
+    return true;
+  });
 
   function loadFamilies() {
     setLoading(true);
@@ -84,8 +108,41 @@ function App() {
 
       {!loading && !error && (
         <>
+          <section className="panel operational-filter">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">US12</p>
+                <h2>Status em Campo</h2>
+              </div>
+            </div>
+
+            <div className="filter-actions" aria-label="Filtrar status de recebimento">
+              <button
+                type="button"
+                className={statusFilter === "all" ? "filter-active" : ""}
+                onClick={() => setStatusFilter("all")}
+              >
+                Todos <span>{families.length}</span>
+              </button>
+              <button
+                type="button"
+                className={statusFilter === "pending" ? "filter-active" : ""}
+                onClick={() => setStatusFilter("pending")}
+              >
+                Pendentes <span>{pendingFamilies.length}</span>
+              </button>
+              <button
+                type="button"
+                className={statusFilter === "received" ? "filter-active" : ""}
+                onClick={() => setStatusFilter("received")}
+              >
+                Já receberam <span>{receivedFamilies.length}</span>
+              </button>
+            </div>
+          </section>
+
           <FamilyList
-            families={families}
+            families={filteredFamilies}
             selectedFamilyId={selectedFamily?.id ?? null}
             onSelectFamily={setSelectedFamily}
           />
