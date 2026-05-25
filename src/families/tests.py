@@ -1,5 +1,6 @@
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
 
 from .forms import FamilyForm
 from .models import DeliveryLog, Family
@@ -127,3 +128,27 @@ class PriorityQueueTests(TestCase):
                 received_recently,
             ],
         )
+
+
+class DeliveryRegistrationApiTests(TestCase):
+    def test_delivery_can_be_registered_for_family(self):
+        family = Family.objects.create(
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+
+        response = self.client.post(
+            f"/api/families/{family.id}/deliveries/",
+            data={
+                "notes": "Entrega confirmada em campo.",
+            },
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(family.deliveries.count(), 1)
+
+        delivery = family.deliveries.first()
+
+        self.assertEqual(delivery.notes, "Entrega confirmada em campo.")

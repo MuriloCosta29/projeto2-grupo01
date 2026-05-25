@@ -2,9 +2,19 @@ import type { Family } from "../types";
 
 type FamilyDetailsProps = {
   family: Family | null;
+  isRegisteringDelivery: boolean;
+  deliveryError: string;
+  deliverySuccess: string;
+  onRegisterDelivery: (family: Family) => void;
 };
 
-export function FamilyDetails({ family }: FamilyDetailsProps) {
+export function FamilyDetails({
+  family,
+  isRegisteringDelivery,
+  deliveryError,
+  deliverySuccess,
+  onRegisterDelivery,
+}: FamilyDetailsProps) {
   if (!family) {
     return (
       <section className="panel">
@@ -23,6 +33,19 @@ export function FamilyDetails({ family }: FamilyDetailsProps) {
         <span>{family.codigo_viela}</span>
         <small>{family.quantidade_moradores} moradores</small>
       </div>
+
+      <div className="delivery-actions">
+        <button
+          type="button"
+          onClick={() => onRegisterDelivery(family)}
+          disabled={isRegisteringDelivery}
+        >
+          {isRegisteringDelivery ? "Registrando..." : "Confirmar Entrega"}
+        </button>
+      </div>
+
+      {deliveryError && <p className="status error">{deliveryError}</p>}
+      {deliverySuccess && <p className="status success">{deliverySuccess}</p>}
 
       {(!family.deliveries || family.deliveries.length === 0) && (
         <p className="muted">Nenhuma entrega registrada para esta família.</p>
