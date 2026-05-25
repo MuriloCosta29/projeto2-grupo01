@@ -4,7 +4,7 @@ import "./App.css";
 import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
 import { FamilyDetails } from "./components/FamilyDetails";
-import { getFamilies } from "./services/api";
+import { getFamilies, registerDelivery } from "./services/api";
 import type { Family } from "./types";
 
 function App() {
@@ -12,6 +12,9 @@ function App() {
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
+  const [deliveryError, setDeliveryError] = useState("");
+  const [deliverySuccess, setDeliverySuccess] = useState("");
 
   function loadFamilies() {
     setLoading(true);
@@ -40,6 +43,29 @@ function App() {
     loadFamilies();
   }, []);
 
+  async function handleRegisterDelivery(family: Family) {
+    setIsRegisteringDelivery(true);
+    setDeliveryError("");
+    setDeliverySuccess("");
+
+    try {
+      await registerDelivery(family.id, {
+        notes: "Entrega confirmada em campo.",
+      });
+      setDeliverySuccess("Entrega registrada com sucesso.");
+      await loadFamilies();
+    } catch (caughtError) {
+      if (caughtError instanceof Error) {
+        setDeliveryError(caughtError.message);
+        return;
+      }
+
+      setDeliveryError("Não foi possível registrar a entrega.");
+    } finally {
+      setIsRegisteringDelivery(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="hero">
@@ -63,7 +89,13 @@ function App() {
             selectedFamilyId={selectedFamily?.id ?? null}
             onSelectFamily={setSelectedFamily}
           />
-          <FamilyDetails family={selectedFamily} />
+          <FamilyDetails
+            family={selectedFamily}
+            isRegisteringDelivery={isRegisteringDelivery}
+            deliveryError={deliveryError}
+            deliverySuccess={deliverySuccess}
+            onRegisterDelivery={handleRegisterDelivery}
+          />
         </>
       )}
     </main>
