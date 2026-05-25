@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Max
 from django.urls import reverse
+from django.utils import timezone
 
 
 class FamilyQuerySet(models.QuerySet):
@@ -69,7 +70,9 @@ class DeliveryLog(models.Model):
         on_delete=models.CASCADE,
         related_name="deliveries",
     )
-    delivery_date = models.DateField()  # Data em que a cesta foi entrega
+    delivery_date = models.DateField(
+        default=timezone.localdate
+    )  # Data em que a cesta foi entrega
     notes = models.TextField(blank=True)  # Observação opcional
     created_at = models.DateTimeField(
         auto_now_add=True
