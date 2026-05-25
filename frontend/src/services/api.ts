@@ -42,5 +42,27 @@ export async function createFamily(
   return response.json();
 }
 
+export type RegisterDeliveryPayload = {
+  notes?: string;
+};
 
+export async function registerDelivery(
+  familyId: number,
+  payload: RegisterDeliveryPayload = {},
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/families/${familyId}/deliveries/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
 
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error ?? "Erro ao registrar entrega.");
+  }
+}

@@ -6,7 +6,16 @@ from django.http import JsonResponse
 import json
 
 from .forms import FamilyForm
-from .models import Family
+from .models import DeliveryLog, Family
+
+
+def health_check(request):
+    return JsonResponse(
+        {
+            "status": "ok",
+            "service": "presidente-de-rua-api",
+        }
+    )
 
 
 class HomeView(TemplateView):
@@ -111,4 +120,45 @@ def families_api(request):
 
     return add_cors_headers(
         JsonResponse({"error": "Método não permitido."}, status=405)
+    )
+
+
+@csrf_exempt
+def family_deliveries_api(request, family_id):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method != "POST":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    try:
+        family = Family.objects.get(id=family_id)
+    except Family.DoesNotExist:
+        return add_cors_headers(
+            JsonResponse({"error": "Família não encontrada."}, status=404)
+        )
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
+
+    delivery = DeliveryLog.objects.create(
+        family=family,
+        notes=payload.get("notes", ""),
+    )
+
+    return add_cors_headers(
+        JsonResponse(
+            {
+                "id": delivery.id,
+                "family_id": family.id,
+                "delivery_date": delivery.delivery_date.isoformat(),
+                "notes": delivery.notes,
+                "created_at": delivery.created_at.isoformat(),
+            },
+            status=201,
+        )
     )
