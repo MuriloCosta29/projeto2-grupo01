@@ -83,3 +83,47 @@ class DeliveryLogModelTests(TestCase):
 
         self.assertEqual(family.deliveries.count(), 2)
         self.assertEqual(family.deliveries.first().notes, "Segunda entrega")
+
+
+class PriorityQueueTests(TestCase):
+    def test_families_are_ordered_by_priority_queue(self):
+        never_received = Family.objects.create(
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+
+        received_long_ago = Family.objects.create(
+            nome_responsavel="Bruno Lima",
+            codigo_viela="Viela 02",
+            quantidade_moradores=5,
+        )
+
+        received_recently = Family.objects.create(
+            nome_responsavel="Carla Santos",
+            codigo_viela="Viela 03",
+            quantidade_moradores=2,
+        )
+
+        DeliveryLog.objects.create(
+            family=received_long_ago,
+            delivery_date="2026-04-01",
+            notes="Entrega antiga",
+        )
+
+        DeliveryLog.objects.create(
+            family=received_recently,
+            delivery_date="2026-05-20",
+            notes="Entrega recente",
+        )
+
+        families = Family.objects.order_by_priority()
+
+        self.assertEqual(
+            list(families),
+            [
+                never_received,
+                received_long_ago,
+                received_recently,
+            ],
+        )
