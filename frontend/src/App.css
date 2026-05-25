@@ -40,6 +40,33 @@
   padding: 24px;
 }
 
+.panel-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel-header .eyebrow {
+  margin: 0 0 4px;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.panel-header > span {
+  border: 1px solid #99f6e4;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #ecfeff;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .family-form {
   display: grid;
   gap: 16px;
@@ -79,7 +106,8 @@
 
 .family-card {
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -89,6 +117,19 @@
   cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+.priority-position {
+  grid-row: span 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 900;
 }
 
 .family-card:hover,
@@ -104,6 +145,12 @@
 
 .family-card small {
   color: #64748b;
+}
+
+.family-card em {
+  color: #0f766e;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .family-detail-header {

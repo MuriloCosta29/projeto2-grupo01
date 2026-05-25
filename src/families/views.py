@@ -40,7 +40,7 @@ def families_api(request):
         return add_cors_headers(JsonResponse({}))
 
     if request.method == "GET":
-        families = Family.objects.prefetch_related("deliveries").all()
+        families = Family.objects.prefetch_related("deliveries").order_by_priority()
 
         data = [
             {

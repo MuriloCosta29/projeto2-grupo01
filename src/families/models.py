@@ -1,8 +1,20 @@
 from django.db import models
+from django.db.models import Max
 from django.urls import reverse
 
 
+class FamilyQuerySet(models.QuerySet):
+    def order_by_priority(self):
+        return self.annotate(
+            last_delivery_date=Max("deliveries__delivery_date")
+        ).order_by(
+            "last_delivery_date",
+            "nome_responsavel",
+        )
+
+
 class Family(models.Model):
+    objects = FamilyQuerySet.as_manager()
     nome_responsavel = models.CharField(max_length=200)
     telefone = models.CharField(max_length=30, blank=True)
     codigo_viela = models.CharField(max_length=120)
