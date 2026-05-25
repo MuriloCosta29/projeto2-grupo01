@@ -13,10 +13,22 @@ export function FamilyList({
   selectedFamilyId,
   onSelectFamily,
 }: FamilyListProps) {
+  function getPriorityStatus(family: Family) {
+    const lastDelivery = family.deliveries?.[0];
+
+    if (!lastDelivery) {
+      return "Nunca recebeu";
+    }
+
+    return `Última entrega em ${new Intl.DateTimeFormat("pt-BR").format(
+      new Date(`${lastDelivery.delivery_date}T00:00:00`),
+    )}`;
+  }
+
   if (families.length === 0) {
     return (
       <section className="panel">
-        <h2>Famílias cadastradas</h2>
+        <h2>Fila de Prioridade</h2>
         <p className="muted">Nenhuma família cadastrada ainda.</p>
       </section>
     );
@@ -24,10 +36,16 @@ export function FamilyList({
 
   return (
     <section className="panel">
-      <h2>Famílias cadastradas</h2>
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">US04</p>
+          <h2>Fila de Prioridade</h2>
+        </div>
+        <span>{families.length} famílias</span>
+      </div>
 
       <div className="family-list">
-        {families.map((family) => (
+        {families.map((family, index) => (
           <button
             key={family.id}
             type="button"
@@ -38,12 +56,14 @@ export function FamilyList({
             }
             onClick={() => onSelectFamily(family)}
           >
+            <span className="priority-position">#{index + 1}</span>
             <strong>{family.nome_responsavel}</strong>
             <span>{family.codigo_viela}</span>
             <small>
               {family.quantidade_moradores} moradores
               {family.bairro ? ` · ${family.bairro}` : ""}
             </small>
+            <em>{getPriorityStatus(family)}</em>
           </button>
         ))}
       </div>
