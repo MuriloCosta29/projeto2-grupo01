@@ -4,12 +4,17 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { createFamily } from "../services/api";
+import { savePendingFamily } from "../services/offlineFamilies";
 
 type FamilyFormProps = {
   onFamilyCreated: () => Promise<void> | void;
+  onOfflineFamilySaved: () => void;
 };
 
-export function FamilyForm({ onFamilyCreated }: FamilyFormProps) {
+export function FamilyForm({
+  onFamilyCreated,
+  onOfflineFamilySaved,
+}: FamilyFormProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -21,14 +26,31 @@ export function FamilyForm({ onFamilyCreated }: FamilyFormProps) {
     setSuccess("");
 
     const formData = new FormData(event.currentTarget);
+    const payload = {
+      nome_responsavel: String(formData.get("nome_responsavel") || ""),
+      quantidade_moradores: Number(formData.get("quantidade_moradores") || 1),
+      codigo_viela: String(formData.get("codigo_viela") || ""),
+      cep: String(formData.get("cep") || ""),
+    };
+
+    if (!navigator.onLine) {
+      const result = savePendingFamily(payload);
+
+      if (!result.saved && result.reason === "duplicate") {
+        setError("Cadastro offline duplicado. Essa família já está aguardando sincronização.");
+        return;
+      }
+
+      form.reset();
+      setSuccess(
+        "Sem conexão. Cadastro salvo localmente para sincronização futura.",
+      );
+      onOfflineFamilySaved();
+      return;
+    }
 
     try {
-      await createFamily({
-        nome_responsavel: String(formData.get("nome_responsavel") || ""),
-        quantidade_moradores: Number(formData.get("quantidade_moradores") || 1),
-        codigo_viela: String(formData.get("codigo_viela") || ""),
-        cep: String(formData.get("cep") || ""),
-      });
+      await createFamily(payload);
 
       form.reset();
       setSuccess("Família mapeada com sucesso.");
@@ -78,4 +100,3 @@ export function FamilyForm({ onFamilyCreated }: FamilyFormProps) {
     </section>
   );
 }
-

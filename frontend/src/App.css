@@ -262,3 +262,7 @@
 .status.success {
   color: #047857;
 }
+
+.status.warning {
+  color: #b45309;
+}
