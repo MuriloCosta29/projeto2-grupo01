@@ -5,6 +5,10 @@ import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
 import { FamilyDetails } from "./components/FamilyDetails";
 import { getFamilies, registerDelivery } from "./services/api";
+import {
+  getPendingFamiliesCount,
+  syncPendingFamilies,
+} from "./services/offlineFamilies";
 import type { Family } from "./types";
 
 type OperationalStatusFilter = "all" | "pending" | "received";
@@ -19,6 +23,9 @@ function App() {
   const [deliverySuccess, setDeliverySuccess] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<OperationalStatusFilter>("all");
+  const [pendingOfflineFamiliesCount, setPendingOfflineFamiliesCount] =
+    useState(0);
+  const [offlineSyncMessage, setOfflineSyncMessage] = useState("");
 
   const pendingFamilies = families.filter(
     (family) => !family.deliveries || family.deliveries.length === 0,
@@ -63,8 +70,65 @@ function App() {
       });
   }
 
+  function refreshPendingOfflineFamiliesCount() {
+    setPendingOfflineFamiliesCount(getPendingFamiliesCount());
+  }
+
+  async function handleSyncPendingFamilies() {
+    if (!navigator.onLine || getPendingFamiliesCount() === 0) {
+      refreshPendingOfflineFamiliesCount();
+      return;
+    }
+
+    setOfflineSyncMessage("Sincronizando cadastros offline...");
+
+    const result = await syncPendingFamilies();
+
+    refreshPendingOfflineFamiliesCount();
+
+    if (result.syncedCount > 0 || result.duplicateCount > 0) {
+      const syncedMessage =
+        result.syncedCount > 0
+          ? `${result.syncedCount} cadastro(s) offline sincronizado(s).`
+          : "";
+      const duplicateMessage =
+        result.duplicateCount > 0
+          ? `${result.duplicateCount} cadastro(s) duplicado(s) removido(s) da fila offline.`
+          : "";
+
+      setOfflineSyncMessage(
+        [syncedMessage, duplicateMessage].filter(Boolean).join(" "),
+      );
+      await loadFamilies();
+      return;
+    }
+
+    if (result.remainingCount > 0) {
+      setOfflineSyncMessage(
+        "Ainda existem cadastros offline aguardando sincronização.",
+      );
+      return;
+    }
+
+    setOfflineSyncMessage("");
+  }
+
   useEffect(() => {
+    refreshPendingOfflineFamiliesCount();
+    if (navigator.onLine && getPendingFamiliesCount() > 0) {
+      handleSyncPendingFamilies();
+      return;
+    }
+
     loadFamilies();
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("online", handleSyncPendingFamilies);
+
+    return () => {
+      window.removeEventListener("online", handleSyncPendingFamilies);
+    };
   }, []);
 
   async function handleRegisterDelivery(family: Family) {
@@ -103,8 +167,18 @@ function App() {
 
       {loading && <p className="status">Carregando famílias...</p>}
       {error && <p className="status error">{error}</p>}
+      {pendingOfflineFamiliesCount > 0 && (
+        <p className="status warning">
+          {pendingOfflineFamiliesCount} cadastro(s) offline aguardando
+          sincronização.
+        </p>
+      )}
+      {offlineSyncMessage && <p className="status success">{offlineSyncMessage}</p>}
 
-      <FamilyForm onFamilyCreated={loadFamilies} />
+      <FamilyForm
+        onFamilyCreated={loadFamilies}
+        onOfflineFamilySaved={refreshPendingOfflineFamiliesCount}
+      />
 
       {!loading && !error && (
         <>
