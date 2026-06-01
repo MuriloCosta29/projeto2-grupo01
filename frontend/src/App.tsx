@@ -13,6 +13,17 @@ import type { Family } from "./types";
 
 type OperationalStatusFilter = "all" | "pending" | "received";
 
+// Número oficial do suporte configurado pela variável VITE_SUPPORT_WHATSAPP_NUMBER.
+const supportWhatsappNumber = import.meta.env.VITE_SUPPORT_WHATSAPP_NUMBER ?? "";
+
+const supportMessage = encodeURIComponent(
+  "Olá, preciso de suporte operacional no Presidente de Rua.",
+); // Mensagem automática que aparece no WhatsApp.
+
+const supportWhatsappUrl = supportWhatsappNumber
+  ? `https://wa.me/${supportWhatsappNumber}?text=${supportMessage}`
+  : `https://wa.me/?text=${supportMessage}`;
+
 function App() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
@@ -163,6 +174,26 @@ function App() {
           Sistema de apoio ao Presidente de Rua para mapear famílias sem CEP
           oficial, evitar duplicidade e consultar histórico de entregas.
         </p>
+      </section>
+
+      <section className="panel support-panel">
+        <div>
+          <p className="eyebrow">US07</p>
+          <h2>Suporte Operacional</h2>
+          <p className="muted">
+            Acione a central do G10 Favelas em caso de dificuldade técnica ou
+            conflito em campo.
+          </p>
+        </div>
+
+        <a
+          className="support-link"
+          href={supportWhatsappUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Ajuda via WhatsApp
+        </a>
       </section>
 
       {loading && <p className="status">Carregando famílias...</p>}
