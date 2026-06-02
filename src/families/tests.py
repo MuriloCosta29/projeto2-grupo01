@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .forms import FamilyForm
-from .models import DeliveryLog, Family
+from .models import DeliveryLog, Family, FieldAgent
 
 
 class FamilyModelTests(TestCase):
@@ -153,6 +153,45 @@ class DeliveryRegistrationApiTests(TestCase):
 
         self.assertEqual(delivery.notes, "Entrega confirmada em campo.")
 
+    def test_delivery_uses_family_assigned_agent(self):
+        agent = FieldAgent.objects.create(nome="João Presidente")
+        family = Family.objects.create(
+            assigned_agent=agent,
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+
+        response = self.client.post(
+            f"/api/families/{family.id}/deliveries/",
+            data={},
+            content_type="application/json",
+        )
+
+        delivery = family.deliveries.first()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(delivery.agent, agent)
+
+    def test_delivery_can_use_selected_agent(self):
+        agent = FieldAgent.objects.create(nome="Maria Presidente")
+        family = Family.objects.create(
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+
+        response = self.client.post(
+            f"/api/families/{family.id}/deliveries/",
+            data={"agent_id": agent.id},
+            content_type="application/json",
+        )
+
+        delivery = family.deliveries.first()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(delivery.agent, agent)
+
 
 class DashboardImpactApiTests(TestCase):
     def test_dashboard_shows_total_deliveries(self):
@@ -174,3 +213,42 @@ class DashboardImpactApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["total_deliveries"], 2)
+
+
+class FieldAgentMonitoringApiTests(TestCase):
+    def test_field_agent_monitoring_shows_attended_families_and_frequency(self):
+        agent = FieldAgent.objects.create(
+            nome="João Presidente",
+            codigo_area="Setor Norte",
+        )
+        first_family = Family.objects.create(
+            assigned_agent=agent,
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+        second_family = Family.objects.create(
+            assigned_agent=agent,
+            nome_responsavel="Bruno Lima",
+            codigo_viela="Viela 02",
+            quantidade_moradores=5,
+        )
+
+        DeliveryLog.objects.create(family=first_family, agent=agent)
+        DeliveryLog.objects.create(family=second_family, agent=agent)
+
+        response = self.client.get("/api/field-agents/")
+        agent_data = response.json()[0]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(agent_data["nome"], "João Presidente")
+        self.assertEqual(agent_data["assigned_families_count"], 2)
+        self.assertEqual(agent_data["attended_families_count"], 2)
+        self.assertEqual(agent_data["deliveries_count"], 2)
+        self.assertEqual(
+            agent_data["attended_families"],
+            [
+                {"id": first_family.id, "nome_responsavel": "Ana Souza"},
+                {"id": second_family.id, "nome_responsavel": "Bruno Lima"},
+            ],
+        )
