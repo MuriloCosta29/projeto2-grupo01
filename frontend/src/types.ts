@@ -24,4 +24,20 @@ export type DashboardImpact = {
   total_deliveries: number;
 };
 
+export type FieldAgentAttendedFamily = {
+  id: number;
+  nome_responsavel: string;
+};
+
+export type FieldAgent = {
+  id: number;
+  nome: string;
+  codigo_area: string;
+  ativo: boolean;
+  assigned_families_count: number;
+  attended_families_count: number;
+  deliveries_count: number;
+  attended_families: FieldAgentAttendedFamily[];
+};
+
 // Esses tipos representam as famílias vindo do Backend Django.
