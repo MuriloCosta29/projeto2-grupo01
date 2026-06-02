@@ -18,6 +18,21 @@ def health_check(request):
     )
 
 
+def dashboard_impact_api(request):
+    if request.method != "GET":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    return add_cors_headers(
+        JsonResponse(
+            {
+                "total_deliveries": DeliveryLog.objects.count(),
+            }
+        )
+    )
+
+
 class HomeView(TemplateView):
     template_name = "families/home.html"
 

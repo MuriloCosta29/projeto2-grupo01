@@ -4,12 +4,13 @@ import "./App.css";
 import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
 import { FamilyDetails } from "./components/FamilyDetails";
-import { getFamilies, registerDelivery } from "./services/api";
+import { getDashboardImpact, getFamilies, registerDelivery } from "./services/api";
 import {
   getPendingFamiliesCount,
   syncPendingFamilies,
 } from "./services/offlineFamilies";
 import type { Family } from "./types";
+import type { DashboardImpact } from "./types";
 
 type OperationalStatusFilter = "all" | "pending" | "received";
 
@@ -26,9 +27,13 @@ const supportWhatsappUrl = supportWhatsappNumber
 
 function App() {
   const [families, setFamilies] = useState<Family[]>([]);
+  const [dashboardImpact, setDashboardImpact] = useState<DashboardImpact | null>(
+    null,
+  );
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [dashboardError, setDashboardError] = useState("");
   const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
   const [deliverySuccess, setDeliverySuccess] = useState("");
@@ -81,6 +86,17 @@ function App() {
       });
   }
 
+  function loadDashboardImpact() {
+    return getDashboardImpact()
+      .then((data) => {
+        setDashboardImpact(data);
+        setDashboardError("");
+      })
+      .catch(() => {
+        setDashboardError("Não foi possível carregar o dashboard.");
+      });
+  }
+
   function refreshPendingOfflineFamiliesCount() {
     setPendingOfflineFamiliesCount(getPendingFamiliesCount());
   }
@@ -111,6 +127,7 @@ function App() {
         [syncedMessage, duplicateMessage].filter(Boolean).join(" "),
       );
       await loadFamilies();
+      await loadDashboardImpact();
       return;
     }
 
@@ -126,6 +143,8 @@ function App() {
 
   useEffect(() => {
     refreshPendingOfflineFamiliesCount();
+    loadDashboardImpact();
+
     if (navigator.onLine && getPendingFamiliesCount() > 0) {
       handleSyncPendingFamilies();
       return;
@@ -149,10 +168,11 @@ function App() {
 
     try {
       await registerDelivery(family.id, {
-        notes: "Entrega confirmada em campo.",
+        notes: "Entrega registrada pelo Presidente de Rua.",
       });
       setDeliverySuccess("Entrega registrada com sucesso.");
       await loadFamilies();
+      await loadDashboardImpact();
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setDeliveryError(caughtError.message);
@@ -196,8 +216,19 @@ function App() {
         </a>
       </section>
 
+      <section className="panel impact-dashboard">
+        <div>
+          <p className="eyebrow">US08</p>
+          <h2>Impacto da Distribuição</h2>
+          <p className="muted">Total de cestas básicas entregues.</p>
+        </div>
+
+        <strong>{dashboardImpact?.total_deliveries ?? 0}</strong>
+      </section>
+
       {loading && <p className="status">Carregando famílias...</p>}
       {error && <p className="status error">{error}</p>}
+      {dashboardError && <p className="status error">{dashboardError}</p>}
       {pendingOfflineFamiliesCount > 0 && (
         <p className="status warning">
           {pendingOfflineFamiliesCount} cadastro(s) offline aguardando

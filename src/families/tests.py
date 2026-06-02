@@ -152,3 +152,25 @@ class DeliveryRegistrationApiTests(TestCase):
         delivery = family.deliveries.first()
 
         self.assertEqual(delivery.notes, "Entrega confirmada em campo.")
+
+
+class DashboardImpactApiTests(TestCase):
+    def test_dashboard_shows_total_deliveries(self):
+        first_family = Family.objects.create(
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+        second_family = Family.objects.create(
+            nome_responsavel="Bruno Lima",
+            codigo_viela="Viela 02",
+            quantidade_moradores=5,
+        )
+
+        DeliveryLog.objects.create(family=first_family)
+        DeliveryLog.objects.create(family=second_family)
+
+        response = self.client.get("/api/dashboard/impact/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["total_deliveries"], 2)

@@ -133,6 +133,37 @@
   background: #0f766e;
 }
 
+.impact-dashboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.impact-dashboard h2,
+.impact-dashboard p {
+  margin: 0;
+}
+
+.impact-dashboard .eyebrow {
+  margin: 0 0 4px;
+}
+
+.impact-dashboard h2 {
+  margin-bottom: 6px;
+}
+
+.impact-dashboard > strong {
+  min-width: 96px;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: #0f172a;
+  color: white;
+  font-size: 40px;
+  line-height: 1;
+  text-align: center;
+}
+
 .operational-filter {
   display: grid;
   gap: 16px;
