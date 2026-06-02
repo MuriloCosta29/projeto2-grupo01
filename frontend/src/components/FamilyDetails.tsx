@@ -1,18 +1,24 @@
-import type { Family } from "../types";
+import type { Family, FieldAgent } from "../types";
 
 type FamilyDetailsProps = {
   family: Family | null;
+  agents: FieldAgent[];
+  selectedDeliveryAgentId: number | null;
   isRegisteringDelivery: boolean;
   deliveryError: string;
   deliverySuccess: string;
-  onRegisterDelivery: (family: Family) => void;
+  onSelectDeliveryAgent: (agentId: number | null) => void;
+  onRegisterDelivery: (family: Family, agentId: number | null) => void;
 };
 
 export function FamilyDetails({
   family,
+  agents,
+  selectedDeliveryAgentId,
   isRegisteringDelivery,
   deliveryError,
   deliverySuccess,
+  onSelectDeliveryAgent,
   onRegisterDelivery,
 }: FamilyDetailsProps) {
   if (!family) {
@@ -35,9 +41,28 @@ export function FamilyDetails({
       </div>
 
       <div className="delivery-actions">
+        <label>
+          Presidente de Rua responsável
+          <select
+            value={selectedDeliveryAgentId ?? ""}
+            onChange={(event) => {
+              onSelectDeliveryAgent(
+                event.target.value ? Number(event.target.value) : null,
+              );
+            }}
+          >
+            <option value="">Sem agente vinculado</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <button
           type="button"
-          onClick={() => onRegisterDelivery(family)}
+          onClick={() => onRegisterDelivery(family, selectedDeliveryAgentId)}
           disabled={isRegisteringDelivery}
         >
           {isRegisteringDelivery ? "Registrando..." : "Confirmar Entrega"}

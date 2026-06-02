@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 
 import "./App.css";
+import { AgentMonitoring } from "./components/AgentMonitoring";
 import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
 import { FamilyDetails } from "./components/FamilyDetails";
-import { getDashboardImpact, getFamilies, registerDelivery } from "./services/api";
+import {
+  getDashboardImpact,
+  getFamilies,
+  getFieldAgents,
+  registerDelivery,
+} from "./services/api";
 import {
   getPendingFamiliesCount,
   syncPendingFamilies,
 } from "./services/offlineFamilies";
-import type { Family } from "./types";
-import type { DashboardImpact } from "./types";
+import type { DashboardImpact, Family, FieldAgent } from "./types";
 
 type OperationalStatusFilter = "all" | "pending" | "received";
 
@@ -27,12 +32,18 @@ const supportWhatsappUrl = supportWhatsappNumber
 
 function App() {
   const [families, setFamilies] = useState<Family[]>([]);
+  const [fieldAgents, setFieldAgents] = useState<FieldAgent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<FieldAgent | null>(null);
+  const [selectedDeliveryAgentId, setSelectedDeliveryAgentId] = useState<
+    number | null
+  >(null);
   const [dashboardImpact, setDashboardImpact] = useState<DashboardImpact | null>(
     null,
   );
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [agentsError, setAgentsError] = useState("");
   const [dashboardError, setDashboardError] = useState("");
   const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
@@ -97,6 +108,30 @@ function App() {
       });
   }
 
+  function loadFieldAgents() {
+    return getFieldAgents()
+      .then((data) => {
+        setFieldAgents(data);
+        setAgentsError("");
+        setSelectedAgent((currentAgent) => {
+          if (!currentAgent) {
+            setSelectedDeliveryAgentId(data[0]?.id ?? null);
+            return data[0] ?? null;
+          }
+
+          const nextAgent =
+            data.find((agent) => agent.id === currentAgent.id) ?? data[0] ?? null;
+
+          setSelectedDeliveryAgentId(nextAgent?.id ?? null);
+
+          return nextAgent;
+        });
+      })
+      .catch(() => {
+        setAgentsError("Não foi possível carregar os agentes em campo.");
+      });
+  }
+
   function refreshPendingOfflineFamiliesCount() {
     setPendingOfflineFamiliesCount(getPendingFamiliesCount());
   }
@@ -128,6 +163,7 @@ function App() {
       );
       await loadFamilies();
       await loadDashboardImpact();
+      await loadFieldAgents();
       return;
     }
 
@@ -144,6 +180,7 @@ function App() {
   useEffect(() => {
     refreshPendingOfflineFamiliesCount();
     loadDashboardImpact();
+    loadFieldAgents();
 
     if (navigator.onLine && getPendingFamiliesCount() > 0) {
       handleSyncPendingFamilies();
@@ -161,18 +198,25 @@ function App() {
     };
   }, []);
 
-  async function handleRegisterDelivery(family: Family) {
+  function handleSelectAgent(agent: FieldAgent) {
+    setSelectedAgent(agent);
+    setSelectedDeliveryAgentId(agent.id);
+  }
+
+  async function handleRegisterDelivery(family: Family, agentId: number | null) {
     setIsRegisteringDelivery(true);
     setDeliveryError("");
     setDeliverySuccess("");
 
     try {
       await registerDelivery(family.id, {
+        ...(agentId ? { agent_id: agentId } : {}),
         notes: "Entrega registrada pelo Presidente de Rua.",
       });
       setDeliverySuccess("Entrega registrada com sucesso.");
       await loadFamilies();
       await loadDashboardImpact();
+      await loadFieldAgents();
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setDeliveryError(caughtError.message);
@@ -228,6 +272,7 @@ function App() {
 
       {loading && <p className="status">Carregando famílias...</p>}
       {error && <p className="status error">{error}</p>}
+      {agentsError && <p className="status error">{agentsError}</p>}
       {dashboardError && <p className="status error">{dashboardError}</p>}
       {pendingOfflineFamiliesCount > 0 && (
         <p className="status warning">
@@ -244,6 +289,12 @@ function App() {
 
       {!loading && !error && (
         <>
+          <AgentMonitoring
+            agents={fieldAgents}
+            selectedAgent={selectedAgent}
+            onSelectAgent={handleSelectAgent}
+          />
+
           <section className="panel operational-filter">
             <div className="panel-header">
               <div>
@@ -284,9 +335,12 @@ function App() {
           />
           <FamilyDetails
             family={selectedFamily}
+            agents={fieldAgents}
+            selectedDeliveryAgentId={selectedDeliveryAgentId}
             isRegisteringDelivery={isRegisteringDelivery}
             deliveryError={deliveryError}
             deliverySuccess={deliverySuccess}
+            onSelectDeliveryAgent={setSelectedDeliveryAgentId}
             onRegisterDelivery={handleRegisterDelivery}
           />
         </>

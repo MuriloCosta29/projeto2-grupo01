@@ -1,6 +1,6 @@
 // Assume endpoint: `GET /api/families`
 
-import type { DashboardImpact, Family } from "../types";
+import type { DashboardImpact, Family, FieldAgent } from "../types";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -20,6 +20,16 @@ export async function getDashboardImpact(): Promise<DashboardImpact> {
 
   if (!response.ok) {
     throw new Error("Erro ao buscar impacto de distribuição.");
+  }
+
+  return response.json();
+}
+
+export async function getFieldAgents(): Promise<FieldAgent[]> {
+  const response = await fetch(`${API_BASE_URL}/api/field-agents/`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar agentes em campo.");
   }
 
   return response.json();
@@ -53,6 +63,7 @@ export async function createFamily(
 }
 
 export type RegisterDeliveryPayload = {
+  agent_id?: number;
   notes?: string;
 };
 
