@@ -6,7 +6,7 @@ from django.http import JsonResponse
 import json
 
 from .forms import FamilyForm
-from .models import DeliveryLog, Family
+from .models import DeliveryLog, Family, FieldAgent
 
 
 def health_check(request):
@@ -31,6 +31,51 @@ def dashboard_impact_api(request):
             }
         )
     )
+
+
+def field_agents_api(request):
+    if request.method != "GET":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    agents = FieldAgent.objects.prefetch_related(
+        "assigned_families",
+        "deliveries__family",
+    ).all()
+
+    data = []
+
+    for agent in agents:
+        deliveries = list(agent.deliveries.all())
+        attended_families = {
+            delivery.family_id: delivery.family.nome_responsavel
+            for delivery in deliveries
+        }
+
+        data.append(
+            {
+                "id": agent.id,
+                "nome": agent.nome,
+                "codigo_area": agent.codigo_area,
+                "ativo": agent.ativo,
+                "assigned_families_count": agent.assigned_families.count(),
+                "attended_families_count": len(attended_families),
+                "deliveries_count": len(deliveries),
+                "attended_families": sorted(
+                    [
+                        {
+                            "id": family_id,
+                            "nome_responsavel": family_name,
+                        }
+                        for family_id, family_name in attended_families.items()
+                    ],
+                    key=lambda family: family["nome_responsavel"],
+                ),
+            }
+        )
+
+    return add_cors_headers(JsonResponse(data, safe=False))
 
 
 class HomeView(TemplateView):
@@ -160,8 +205,20 @@ def family_deliveries_api(request, family_id):
     except json.JSONDecodeError:
         return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
 
+    agent = family.assigned_agent
+    agent_id = payload.get("agent_id")
+
+    if agent_id:
+        try:
+            agent = FieldAgent.objects.get(id=agent_id)
+        except FieldAgent.DoesNotExist:
+            return add_cors_headers(
+                JsonResponse({"error": "Agente não encontrado."}, status=404)
+            )
+
     delivery = DeliveryLog.objects.create(
         family=family,
+        agent=agent,
         notes=payload.get("notes", ""),
     )
 

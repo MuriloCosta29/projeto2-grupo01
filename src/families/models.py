@@ -14,8 +14,30 @@ class FamilyQuerySet(models.QuerySet):
         )
 
 
+class FieldAgent(models.Model):
+    nome = models.CharField(max_length=200)
+    codigo_area = models.CharField(max_length=120, blank=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "Presidente de Rua"
+        verbose_name_plural = "Presidentes de Rua"
+
+    def __str__(self):
+        return self.nome
+
+
 class Family(models.Model):
     objects = FamilyQuerySet.as_manager()
+    assigned_agent = models.ForeignKey(
+        FieldAgent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_families",
+    )
     nome_responsavel = models.CharField(max_length=200)
     telefone = models.CharField(max_length=30, blank=True)
     codigo_viela = models.CharField(max_length=120)
@@ -68,6 +90,13 @@ class DeliveryLog(models.Model):
     family = models.ForeignKey(  # Liga a entrega a familia
         Family,
         on_delete=models.CASCADE,
+        related_name="deliveries",
+    )
+    agent = models.ForeignKey(
+        FieldAgent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="deliveries",
     )
     delivery_date = models.DateField(
