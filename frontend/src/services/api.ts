@@ -1,6 +1,6 @@
 // Assume endpoint: `GET /api/families`
 
-import type { Family } from "../types";
+import type { DashboardImpact, Family } from "../types";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -10,6 +10,16 @@ export async function getFamilies(): Promise<Family[]> {
 
   if (!response.ok) {
     throw new Error("Erro ao buscar famílias.");
+  }
+
+  return response.json();
+}
+
+export async function getDashboardImpact(): Promise<DashboardImpact> {
+  const response = await fetch(`${API_BASE_URL}/api/dashboard/impact/`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar impacto de distribuição.");
   }
 
   return response.json();
