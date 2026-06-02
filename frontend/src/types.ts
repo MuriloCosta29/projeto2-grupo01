@@ -20,4 +20,8 @@ export type Family = {
   deliveries?: DeliveryLog[];
 };
 
+export type DashboardImpact = {
+  total_deliveries: number;
+};
+
 // Esses tipos representam as famílias vindo do Backend Django.
