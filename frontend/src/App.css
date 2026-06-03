@@ -169,6 +169,54 @@
   gap: 16px;
 }
 
+.region-dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.region-dashboard label {
+  display: grid;
+  gap: 6px;
+  max-width: 320px;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.region-dashboard select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+}
+
+.region-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.region-metrics article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.region-metrics span {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.region-metrics strong {
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1;
+}
+
 .agent-monitoring-grid {
   display: grid;
   grid-template-columns: minmax(220px, 280px) 1fr;

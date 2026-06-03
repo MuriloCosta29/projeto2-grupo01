@@ -5,17 +5,24 @@ import { AgentMonitoring } from "./components/AgentMonitoring";
 import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
 import { FamilyDetails } from "./components/FamilyDetails";
+import { RegionDeliveryDashboard } from "./components/RegionDeliveryDashboard";
 import {
   getDashboardImpact,
   getFamilies,
   getFieldAgents,
+  getRegionDeliveryImpact,
   registerDelivery,
 } from "./services/api";
 import {
   getPendingFamiliesCount,
   syncPendingFamilies,
 } from "./services/offlineFamilies";
-import type { DashboardImpact, Family, FieldAgent } from "./types";
+import type {
+  DashboardImpact,
+  Family,
+  FieldAgent,
+  RegionDeliveryImpact,
+} from "./types";
 
 type OperationalStatusFilter = "all" | "pending" | "received";
 
@@ -33,6 +40,10 @@ const supportWhatsappUrl = supportWhatsappNumber
 function App() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [fieldAgents, setFieldAgents] = useState<FieldAgent[]>([]);
+  const [regionDeliveryImpact, setRegionDeliveryImpact] = useState<
+    RegionDeliveryImpact[]
+  >([]);
+  const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedAgent, setSelectedAgent] = useState<FieldAgent | null>(null);
   const [selectedDeliveryAgentId, setSelectedDeliveryAgentId] = useState<
     number | null
@@ -45,6 +56,7 @@ function App() {
   const [error, setError] = useState("");
   const [agentsError, setAgentsError] = useState("");
   const [dashboardError, setDashboardError] = useState("");
+  const [regionDashboardError, setRegionDashboardError] = useState("");
   const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
   const [deliverySuccess, setDeliverySuccess] = useState("");
@@ -132,6 +144,27 @@ function App() {
       });
   }
 
+  function loadRegionDeliveryImpact() {
+    return getRegionDeliveryImpact()
+      .then((data) => {
+        setRegionDeliveryImpact(data);
+        setRegionDashboardError("");
+        setSelectedRegion((currentRegion) => {
+          if (
+            currentRegion !== "all" &&
+            !data.some((region) => region.region === currentRegion)
+          ) {
+            return "all";
+          }
+
+          return currentRegion;
+        });
+      })
+      .catch(() => {
+        setRegionDashboardError("Não foi possível carregar entregas por região.");
+      });
+  }
+
   function refreshPendingOfflineFamiliesCount() {
     setPendingOfflineFamiliesCount(getPendingFamiliesCount());
   }
@@ -164,6 +197,7 @@ function App() {
       await loadFamilies();
       await loadDashboardImpact();
       await loadFieldAgents();
+      await loadRegionDeliveryImpact();
       return;
     }
 
@@ -181,6 +215,7 @@ function App() {
     refreshPendingOfflineFamiliesCount();
     loadDashboardImpact();
     loadFieldAgents();
+    loadRegionDeliveryImpact();
 
     if (navigator.onLine && getPendingFamiliesCount() > 0) {
       handleSyncPendingFamilies();
@@ -217,6 +252,7 @@ function App() {
       await loadFamilies();
       await loadDashboardImpact();
       await loadFieldAgents();
+      await loadRegionDeliveryImpact();
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setDeliveryError(caughtError.message);
@@ -270,10 +306,19 @@ function App() {
         <strong>{dashboardImpact?.total_deliveries ?? 0}</strong>
       </section>
 
+      <RegionDeliveryDashboard
+        regions={regionDeliveryImpact}
+        selectedRegion={selectedRegion}
+        onSelectRegion={setSelectedRegion}
+      />
+
       {loading && <p className="status">Carregando famílias...</p>}
       {error && <p className="status error">{error}</p>}
       {agentsError && <p className="status error">{agentsError}</p>}
       {dashboardError && <p className="status error">{dashboardError}</p>}
+      {regionDashboardError && (
+        <p className="status error">{regionDashboardError}</p>
+      )}
       {pendingOfflineFamiliesCount > 0 && (
         <p className="status warning">
           {pendingOfflineFamiliesCount} cadastro(s) offline aguardando

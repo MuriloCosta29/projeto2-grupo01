@@ -33,6 +33,38 @@ def dashboard_impact_api(request):
     )
 
 
+def dashboard_regions_api(request):
+    if request.method != "GET":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    region_data = {}
+
+    for family in Family.objects.prefetch_related("deliveries").all():
+        region = family.bairro.strip() or "Não informado"
+
+        if region not in region_data:
+            region_data[region] = {
+                "region": region,
+                "families_count": 0,
+                "total_deliveries": 0,
+            }
+
+        region_data[region]["families_count"] += 1
+        region_data[region]["total_deliveries"] += family.deliveries.count()
+
+    return add_cors_headers(
+        JsonResponse(
+            sorted(
+                region_data.values(),
+                key=lambda region: region["region"],
+            ),
+            safe=False,
+        )
+    )
+
+
 def field_agents_api(request):
     if request.method != "GET":
         return add_cors_headers(

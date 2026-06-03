@@ -215,6 +215,45 @@ class DashboardImpactApiTests(TestCase):
         self.assertEqual(response.json()["total_deliveries"], 2)
 
 
+class DashboardRegionsApiTests(TestCase):
+    def test_dashboard_filters_deliveries_by_region(self):
+        north_family = Family.objects.create(
+            nome_responsavel="Ana Souza",
+            codigo_viela="Viela 01",
+            bairro="Norte",
+            quantidade_moradores=3,
+        )
+        south_family = Family.objects.create(
+            nome_responsavel="Bruno Lima",
+            codigo_viela="Viela 02",
+            bairro="Sul",
+            quantidade_moradores=5,
+        )
+
+        DeliveryLog.objects.create(family=north_family)
+        DeliveryLog.objects.create(family=north_family)
+        DeliveryLog.objects.create(family=south_family)
+
+        response = self.client.get("/api/dashboard/regions/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    "region": "Norte",
+                    "families_count": 1,
+                    "total_deliveries": 2,
+                },
+                {
+                    "region": "Sul",
+                    "families_count": 1,
+                    "total_deliveries": 1,
+                },
+            ],
+        )
+
+
 class FieldAgentMonitoringApiTests(TestCase):
     def test_field_agent_monitoring_shows_attended_families_and_frequency(self):
         agent = FieldAgent.objects.create(

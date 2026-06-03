@@ -24,6 +24,12 @@ export type DashboardImpact = {
   total_deliveries: number;
 };
 
+export type RegionDeliveryImpact = {
+  region: string;
+  families_count: number;
+  total_deliveries: number;
+};
+
 export type FieldAgentAttendedFamily = {
   id: number;
   nome_responsavel: string;
