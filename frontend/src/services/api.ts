@@ -1,6 +1,12 @@
 // Assume endpoint: `GET /api/families`
 
-import type { DashboardImpact, Family, FieldAgent } from "../types";
+import type {
+  DashboardImpact,
+  Family,
+  FieldAgent,
+  Region,
+  RegionDeliveryImpact,
+} from "../types";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -25,6 +31,26 @@ export async function getDashboardImpact(): Promise<DashboardImpact> {
   return response.json();
 }
 
+export async function getRegionDeliveryImpact(): Promise<RegionDeliveryImpact[]> {
+  const response = await fetch(`${API_BASE_URL}/api/dashboard/regions/`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar entregas por região.");
+  }
+
+  return response.json();
+}
+
+export async function getRegions(): Promise<Region[]> {
+  const response = await fetch(`${API_BASE_URL}/api/regions/`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar regiões.");
+  }
+
+  return response.json();
+}
+
 export async function getFieldAgents(): Promise<FieldAgent[]> {
   const response = await fetch(`${API_BASE_URL}/api/field-agents/`);
 
@@ -36,6 +62,7 @@ export async function getFieldAgents(): Promise<FieldAgent[]> {
 }
 
 export type CreateFamilyPayload = {
+  region_id?: number;
   nome_responsavel: string;
   quantidade_moradores: number;
   codigo_viela: string;
