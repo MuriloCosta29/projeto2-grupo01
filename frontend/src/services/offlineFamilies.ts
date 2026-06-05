@@ -113,6 +113,7 @@ export async function syncPendingFamilies(): Promise<SyncPendingFamiliesResult> 
   for (const family of pendingFamilies) {
     try {
       await createFamily({
+        ...(family.region_id ? { region_id: family.region_id } : {}),
         nome_responsavel: family.nome_responsavel,
         quantidade_moradores: family.quantidade_moradores,
         codigo_viela: family.codigo_viela,

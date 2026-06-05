@@ -1,9 +1,11 @@
+import json
+
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
 from .forms import FamilyForm
-from .models import DeliveryLog, Family, FieldAgent
+from .models import DeliveryLog, Family, FieldAgent, Region
 
 
 class FamilyModelTests(TestCase):
@@ -36,6 +38,21 @@ class FamilyModelTests(TestCase):
                 )
 
 
+class RegionModelTests(TestCase):
+    def test_region_name_and_code_are_normalized(self):
+        region = Region.objects.create(nome="  zona norte  ", codigo=" ZONA NORTE ")
+
+        self.assertEqual(region.nome, "Zona Norte")
+        self.assertEqual(region.codigo, "zona norte")
+
+    def test_duplicate_region_code_is_blocked_after_normalization(self):
+        Region.objects.create(nome="Zona Norte", codigo="zona norte")
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Region.objects.create(nome="Norte", codigo=" ZONA NORTE ")
+
+
 class FamilyFormTests(TestCase):
     def test_duplicate_family_by_name_and_alley_is_blocked_by_form(self):
         Family.objects.create(
@@ -61,6 +78,46 @@ class FamilyFormTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("Possível duplicidade", str(form.errors))
+
+
+class FamilyApiTests(TestCase):
+    def test_family_api_requires_region(self):
+        response = self.client.post(
+            "/api/families/",
+            data=json.dumps(
+                {
+                    "nome_responsavel": "Carlos Oliveira",
+                    "codigo_viela": "Viela Azul",
+                    "quantidade_moradores": 4,
+                    "cep": "",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "Região é obrigatória.")
+
+    def test_family_api_creates_family_with_region(self):
+        region = Region.objects.create(nome="Norte", codigo="norte")
+
+        response = self.client.post(
+            "/api/families/",
+            data=json.dumps(
+                {
+                    "region_id": region.id,
+                    "nome_responsavel": "Carlos Oliveira",
+                    "codigo_viela": "Viela Azul",
+                    "quantidade_moradores": 4,
+                    "cep": "",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["region"]["nome"], "Norte")
+        self.assertEqual(Family.objects.get().region, region)
 
 
 class DeliveryLogModelTests(TestCase):
@@ -217,16 +274,19 @@ class DashboardImpactApiTests(TestCase):
 
 class DashboardRegionsApiTests(TestCase):
     def test_dashboard_filters_deliveries_by_region(self):
+        north_region = Region.objects.create(nome="Norte", codigo="norte")
+        south_region = Region.objects.create(nome="Sul", codigo="sul")
+
         north_family = Family.objects.create(
+            region=north_region,
             nome_responsavel="Ana Souza",
             codigo_viela="Viela 01",
-            bairro="Norte",
             quantidade_moradores=3,
         )
         south_family = Family.objects.create(
+            region=south_region,
             nome_responsavel="Bruno Lima",
             codigo_viela="Viela 02",
-            bairro="Sul",
             quantidade_moradores=5,
         )
 
@@ -250,6 +310,25 @@ class DashboardRegionsApiTests(TestCase):
                     "families_count": 1,
                     "total_deliveries": 1,
                 },
+            ],
+        )
+
+    def test_regions_api_lists_active_regions(self):
+        Region.objects.create(nome="Norte", codigo="norte")
+        Region.objects.create(nome="Sul", codigo="sul", ativo=False)
+
+        response = self.client.get("/api/regions/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    "id": Region.objects.get(codigo="norte").id,
+                    "nome": "Norte",
+                    "codigo": "norte",
+                    "ativo": True,
+                }
             ],
         )
 

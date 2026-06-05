@@ -5,8 +5,16 @@ export type DeliveryLog = {
   created_at: string;
 };
 
+export type Region = {
+  id: number;
+  nome: string;
+  codigo: string;
+  ativo: boolean;
+};
+
 export type Family = {
   id: number;
+  region: Region | null;
   nome_responsavel: string;
   telefone: string;
   codigo_viela: string;
