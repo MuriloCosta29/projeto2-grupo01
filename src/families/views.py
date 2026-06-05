@@ -6,7 +6,7 @@ from django.http import JsonResponse
 import json
 
 from .forms import FamilyForm
-from .models import DeliveryLog, Family, FieldAgent
+from .models import DeliveryLog, Family, FieldAgent, Region
 
 
 def health_check(request):
@@ -31,6 +31,59 @@ def dashboard_impact_api(request):
             }
         )
     )
+
+
+def dashboard_regions_api(request):
+    if request.method != "GET":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    region_data = {}
+
+    families = Family.objects.select_related("region").prefetch_related("deliveries")
+
+    for family in families:
+        region = family.region.nome if family.region else "Não informado"
+
+        if region not in region_data:
+            region_data[region] = {
+                "region": region,
+                "families_count": 0,
+                "total_deliveries": 0,
+            }
+
+        region_data[region]["families_count"] += 1
+        region_data[region]["total_deliveries"] += family.deliveries.count()
+
+    return add_cors_headers(
+        JsonResponse(
+            sorted(
+                region_data.values(),
+                key=lambda region: region["region"],
+            ),
+            safe=False,
+        )
+    )
+
+
+def regions_api(request):
+    if request.method != "GET":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    data = [
+        {
+            "id": region.id,
+            "nome": region.nome,
+            "codigo": region.codigo,
+            "ativo": region.ativo,
+        }
+        for region in Region.objects.filter(ativo=True)
+    ]
+
+    return add_cors_headers(JsonResponse(data, safe=False))
 
 
 def field_agents_api(request):
@@ -109,11 +162,22 @@ def families_api(request):
         return add_cors_headers(JsonResponse({}))
 
     if request.method == "GET":
-        families = Family.objects.prefetch_related("deliveries").order_by_priority()
+        families = Family.objects.select_related("region").prefetch_related(
+            "deliveries"
+        ).order_by_priority()
 
         data = [
             {
                 "id": family.id,
+                "region": (
+                    {
+                        "id": family.region.id,
+                        "nome": family.region.nome,
+                        "codigo": family.region.codigo,
+                    }
+                    if family.region
+                    else None
+                ),
                 "nome_responsavel": family.nome_responsavel,
                 "telefone": family.telefone,
                 "codigo_viela": family.codigo_viela,
@@ -148,11 +212,25 @@ def families_api(request):
             )
 
         try:
+            region_id = payload.get("region_id")
+
+            if not region_id:
+                return add_cors_headers(
+                    JsonResponse({"error": "Região é obrigatória."}, status=400)
+                )
+
+            region = Region.objects.get(id=region_id, ativo=True)
+
             family = Family.objects.create(
+                region=region,
                 nome_responsavel=payload.get("nome_responsavel", ""),
                 quantidade_moradores=payload.get("quantidade_moradores") or 1,
                 codigo_viela=payload.get("codigo_viela", ""),
                 cep=payload.get("cep", ""),
+            )
+        except Region.DoesNotExist:
+            return add_cors_headers(
+                JsonResponse({"error": "Região não encontrada."}, status=404)
             )
         except IntegrityError:
             return add_cors_headers(
@@ -164,6 +242,15 @@ def families_api(request):
 
         data = {
             "id": family.id,
+            "region": (
+                {
+                    "id": family.region.id,
+                    "nome": family.region.nome,
+                    "codigo": family.region.codigo,
+                }
+                if family.region
+                else None
+            ),
             "nome_responsavel": family.nome_responsavel,
             "telefone": family.telefone,
             "codigo_viela": family.codigo_viela,

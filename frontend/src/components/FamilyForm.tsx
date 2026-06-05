@@ -5,13 +5,16 @@ import type { FormEvent } from "react";
 
 import { createFamily } from "../services/api";
 import { savePendingFamily } from "../services/offlineFamilies";
+import type { Region } from "../types";
 
 type FamilyFormProps = {
+  regions: Region[];
   onFamilyCreated: () => Promise<void> | void;
   onOfflineFamilySaved: () => void;
 };
 
 export function FamilyForm({
+  regions,
   onFamilyCreated,
   onOfflineFamilySaved,
 }: FamilyFormProps) {
@@ -26,7 +29,9 @@ export function FamilyForm({
     setSuccess("");
 
     const formData = new FormData(event.currentTarget);
+    const regionId = Number(formData.get("region_id"));
     const payload = {
+      ...(regionId ? { region_id: regionId } : {}),
       nome_responsavel: String(formData.get("nome_responsavel") || ""),
       quantidade_moradores: Number(formData.get("quantidade_moradores") || 1),
       codigo_viela: String(formData.get("codigo_viela") || ""),
@@ -73,6 +78,12 @@ export function FamilyForm({
 
       {success && <p className="status success">{success}</p>}
       {error && <p className="status error">{error}</p>}
+      {regions.length === 0 && (
+        <p className="status warning">
+          Nenhuma região ativa cadastrada. Cadastre uma região antes de mapear
+          famílias.
+        </p>
+      )}
 
       <form className="family-form" onSubmit={handleSubmit}>
         <label>
@@ -91,11 +102,25 @@ export function FamilyForm({
         </label>
 
         <label>
+          Região
+          <select name="region_id" required disabled={regions.length === 0}>
+            <option value="">Selecione uma região</option>
+            {regions.map((region) => (
+              <option key={region.id} value={region.id}>
+                {region.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
           CEP opcional
           <input name="cep" />
         </label>
 
-        <button type="submit">Salvar família</button>
+        <button type="submit" disabled={regions.length === 0}>
+          Salvar família
+        </button>
       </form>
     </section>
   );

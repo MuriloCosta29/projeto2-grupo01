@@ -7,6 +7,7 @@ class FamilyForm(forms.ModelForm):
     class Meta:
         model = Family
         fields = [
+            "region",
             "nome_responsavel",
             "telefone",
             "codigo_viela",
@@ -19,6 +20,7 @@ class FamilyForm(forms.ModelForm):
             "observacoes",
         ]
         labels = {
+            "region": "Região",
             "nome_responsavel": "Nome completo do responsável",
             "telefone": "Telefone",
             "codigo_viela": "Código da Viela / Referência",
