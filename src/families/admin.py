@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import DeliveryLog, Family, FieldAgent, Region
+from .models import (
+    BasketAvailabilityNotification,
+    DeliveryLog,
+    Family,
+    FieldAgent,
+    Region,
+)
 
 
 @admin.register(Region)
@@ -40,3 +46,30 @@ class DeliveryLogAdmin(admin.ModelAdmin):
     search_fields = ("family__nome_responsavel", "family__codigo_viela", "agent__nome")
     list_filter = ("delivery_date", "agent")
     readonly_fields = ("created_at",)
+
+
+@admin.register(BasketAvailabilityNotification)
+class BasketAvailabilityNotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        "family",
+        "region",
+        "channel",
+        "status",
+        "scheduled_for",
+        "pickup_location",
+        "created_at",
+    )
+    search_fields = (
+        "family__nome_responsavel",
+        "family__telefone",
+        "region__nome",
+        "pickup_location",
+    )
+    list_filter = ("channel", "status", "region", "scheduled_for")
+    readonly_fields = (
+        "message",
+        "contact_value",
+        "notification_url",
+        "processed_at",
+        "created_at",
+    )
