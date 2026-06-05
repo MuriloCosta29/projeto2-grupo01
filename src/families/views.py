@@ -1,12 +1,21 @@
 from django.db import IntegrityError
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.views.generic import CreateView, TemplateView
 from django.http import JsonResponse
 import json
+from urllib.parse import quote
 
 from .forms import FamilyForm
-from .models import DeliveryLog, Family, FieldAgent, Region
+from .models import (
+    BasketAvailabilityNotification,
+    DeliveryLog,
+    Family,
+    FieldAgent,
+    Region,
+)
 
 
 def health_check(request):
@@ -156,6 +165,178 @@ def add_cors_headers(response):
     return response
 
 
+def serialize_notification(notification):
+    return {
+        "id": notification.id,
+        "family": {
+            "id": notification.family.id,
+            "nome_responsavel": notification.family.nome_responsavel,
+            "telefone": notification.family.telefone,
+        },
+        "region": (
+            {
+                "id": notification.region.id,
+                "nome": notification.region.nome,
+                "codigo": notification.region.codigo,
+            }
+            if notification.region
+            else None
+        ),
+        "channel": notification.channel,
+        "status": notification.status,
+        "scheduled_for": notification.scheduled_for.isoformat(),
+        "pickup_location": notification.pickup_location,
+        "message": notification.message,
+        "contact_value": notification.contact_value,
+        "notification_url": notification.notification_url,
+        "processed_at": notification.processed_at.isoformat(),
+        "created_at": notification.created_at.isoformat(),
+    }
+
+
+def normalize_phone_for_whatsapp(phone):
+    digits = "".join(character for character in phone if character.isdigit())
+
+    if len(digits) in (10, 11):
+        return f"55{digits}"
+
+    return digits
+
+
+def build_availability_message(family, scheduled_for, pickup_location):
+    local_scheduled_for = timezone.localtime(scheduled_for)
+    formatted_date = local_scheduled_for.strftime("%d/%m/%Y às %H:%M")
+
+    return (
+        f"Olá, {family.nome_responsavel}! Sua cesta básica está disponível "
+        f"em {pickup_location} no dia {formatted_date}. "
+        "Presidente de Rua - G10 Favelas."
+    )
+
+
+def build_whatsapp_url(phone, message):
+    normalized_phone = normalize_phone_for_whatsapp(phone)
+
+    if not normalized_phone:
+        return ""
+
+    return f"https://wa.me/{normalized_phone}?text={quote(message)}"
+
+
+@csrf_exempt
+def basket_availability_notifications_api(request):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method == "GET":
+        notifications = BasketAvailabilityNotification.objects.select_related(
+            "family",
+            "region",
+        ).all()[:50]
+
+        return add_cors_headers(
+            JsonResponse(
+                [serialize_notification(notification) for notification in notifications],
+                safe=False,
+            )
+        )
+
+    if request.method != "POST":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
+
+    region_id = payload.get("region_id")
+    scheduled_for_value = payload.get("scheduled_for")
+    pickup_location = str(payload.get("pickup_location", "")).strip()
+
+    if not region_id:
+        return add_cors_headers(
+            JsonResponse({"error": "Região é obrigatória."}, status=400)
+        )
+
+    if not scheduled_for_value:
+        return add_cors_headers(
+            JsonResponse({"error": "Data e horário são obrigatórios."}, status=400)
+        )
+
+    if not pickup_location:
+        return add_cors_headers(
+            JsonResponse({"error": "Local de retirada é obrigatório."}, status=400)
+        )
+
+    scheduled_for = parse_datetime(scheduled_for_value)
+
+    if scheduled_for is None:
+        return add_cors_headers(
+            JsonResponse({"error": "Data e horário inválidos."}, status=400)
+        )
+
+    if timezone.is_naive(scheduled_for):
+        scheduled_for = timezone.make_aware(
+            scheduled_for,
+            timezone.get_current_timezone(),
+        )
+
+    try:
+        region = Region.objects.get(id=region_id, ativo=True)
+    except Region.DoesNotExist:
+        return add_cors_headers(
+            JsonResponse({"error": "Região não encontrada."}, status=404)
+        )
+
+    families = Family.objects.filter(region=region).order_by_priority()
+    notifications = []
+    created_count = 0
+
+    for family in families:
+        message = build_availability_message(family, scheduled_for, pickup_location)
+        notification_url = build_whatsapp_url(family.telefone, message)
+        status = (
+            BasketAvailabilityNotification.Status.READY
+            if notification_url
+            else BasketAvailabilityNotification.Status.NO_CONTACT
+        )
+
+        notification, created = BasketAvailabilityNotification.objects.get_or_create(
+            family=family,
+            scheduled_for=scheduled_for,
+            pickup_location=pickup_location,
+            defaults={
+                "region": region,
+                "channel": BasketAvailabilityNotification.Channel.WHATSAPP,
+                "status": status,
+                "message": message,
+                "contact_value": family.telefone,
+                "notification_url": notification_url,
+            },
+        )
+
+        if created:
+            created_count += 1
+
+        notifications.append(notification)
+
+    return add_cors_headers(
+        JsonResponse(
+            {
+                "created_count": created_count,
+                "total_notifications": len(notifications),
+                "notifications": [
+                    serialize_notification(notification)
+                    for notification in notifications
+                ],
+            },
+            status=201,
+        )
+    )
+
+
 @csrf_exempt
 def families_api(request):
     if request.method == "OPTIONS":
@@ -224,6 +405,7 @@ def families_api(request):
             family = Family.objects.create(
                 region=region,
                 nome_responsavel=payload.get("nome_responsavel", ""),
+                telefone=payload.get("telefone", ""),
                 quantidade_moradores=payload.get("quantidade_moradores") or 1,
                 codigo_viela=payload.get("codigo_viela", ""),
                 cep=payload.get("cep", ""),
