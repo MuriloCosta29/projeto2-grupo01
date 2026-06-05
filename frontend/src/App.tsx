@@ -11,6 +11,7 @@ import {
   getFamilies,
   getFieldAgents,
   getRegionDeliveryImpact,
+  getRegions,
   registerDelivery,
 } from "./services/api";
 import {
@@ -21,6 +22,7 @@ import type {
   DashboardImpact,
   Family,
   FieldAgent,
+  Region,
   RegionDeliveryImpact,
 } from "./types";
 
@@ -40,6 +42,7 @@ const supportWhatsappUrl = supportWhatsappNumber
 function App() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [fieldAgents, setFieldAgents] = useState<FieldAgent[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
   const [regionDeliveryImpact, setRegionDeliveryImpact] = useState<
     RegionDeliveryImpact[]
   >([]);
@@ -57,6 +60,7 @@ function App() {
   const [agentsError, setAgentsError] = useState("");
   const [dashboardError, setDashboardError] = useState("");
   const [regionDashboardError, setRegionDashboardError] = useState("");
+  const [regionsError, setRegionsError] = useState("");
   const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
   const [deliverySuccess, setDeliverySuccess] = useState("");
@@ -165,6 +169,17 @@ function App() {
       });
   }
 
+  function loadRegions() {
+    return getRegions()
+      .then((data) => {
+        setRegions(data);
+        setRegionsError("");
+      })
+      .catch(() => {
+        setRegionsError("Não foi possível carregar as regiões.");
+      });
+  }
+
   function refreshPendingOfflineFamiliesCount() {
     setPendingOfflineFamiliesCount(getPendingFamiliesCount());
   }
@@ -198,6 +213,7 @@ function App() {
       await loadDashboardImpact();
       await loadFieldAgents();
       await loadRegionDeliveryImpact();
+      await loadRegions();
       return;
     }
 
@@ -216,6 +232,7 @@ function App() {
     loadDashboardImpact();
     loadFieldAgents();
     loadRegionDeliveryImpact();
+    loadRegions();
 
     if (navigator.onLine && getPendingFamiliesCount() > 0) {
       handleSyncPendingFamilies();
@@ -253,6 +270,7 @@ function App() {
       await loadDashboardImpact();
       await loadFieldAgents();
       await loadRegionDeliveryImpact();
+      await loadRegions();
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setDeliveryError(caughtError.message);
@@ -319,6 +337,7 @@ function App() {
       {regionDashboardError && (
         <p className="status error">{regionDashboardError}</p>
       )}
+      {regionsError && <p className="status error">{regionsError}</p>}
       {pendingOfflineFamiliesCount > 0 && (
         <p className="status warning">
           {pendingOfflineFamiliesCount} cadastro(s) offline aguardando
@@ -328,6 +347,7 @@ function App() {
       {offlineSyncMessage && <p className="status success">{offlineSyncMessage}</p>}
 
       <FamilyForm
+        regions={regions}
         onFamilyCreated={loadFamilies}
         onOfflineFamilySaved={refreshPendingOfflineFamiliesCount}
       />

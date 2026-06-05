@@ -14,6 +14,27 @@ class FamilyQuerySet(models.QuerySet):
         )
 
 
+class Region(models.Model):
+    nome = models.CharField(max_length=120, unique=True)
+    codigo = models.CharField(max_length=40, unique=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "região"
+        verbose_name_plural = "regiões"
+
+    def __str__(self):
+        return self.nome
+
+    def save(self, *args, **kwargs):
+        self.nome = " ".join(self.nome.strip().split()).title()
+        self.codigo = " ".join(self.codigo.strip().split()).lower()
+
+        super().save(*args, **kwargs)
+
+
 class FieldAgent(models.Model):
     nome = models.CharField(max_length=200)
     codigo_area = models.CharField(max_length=120, blank=True)
@@ -31,6 +52,13 @@ class FieldAgent(models.Model):
 
 class Family(models.Model):
     objects = FamilyQuerySet.as_manager()
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="families",
+    )
     assigned_agent = models.ForeignKey(
         FieldAgent,
         on_delete=models.SET_NULL,

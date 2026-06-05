@@ -4,6 +4,7 @@ import type {
   DashboardImpact,
   Family,
   FieldAgent,
+  Region,
   RegionDeliveryImpact,
 } from "../types";
 
@@ -40,6 +41,16 @@ export async function getRegionDeliveryImpact(): Promise<RegionDeliveryImpact[]>
   return response.json();
 }
 
+export async function getRegions(): Promise<Region[]> {
+  const response = await fetch(`${API_BASE_URL}/api/regions/`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar regiões.");
+  }
+
+  return response.json();
+}
+
 export async function getFieldAgents(): Promise<FieldAgent[]> {
   const response = await fetch(`${API_BASE_URL}/api/field-agents/`);
 
@@ -51,6 +62,7 @@ export async function getFieldAgents(): Promise<FieldAgent[]> {
 }
 
 export type CreateFamilyPayload = {
+  region_id?: number;
   nome_responsavel: string;
   quantidade_moradores: number;
   codigo_viela: string;

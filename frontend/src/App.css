@@ -78,10 +78,12 @@
   font-weight: 700;
 }
 
-.family-form input {
+.family-form input,
+.family-form select {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 12px;
+  background: white;
   font: inherit;
 }
 
@@ -93,6 +95,12 @@
   color: white;
   font-weight: 800;
   cursor: pointer;
+}
+
+.family-form button:disabled,
+.family-form select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .muted {
