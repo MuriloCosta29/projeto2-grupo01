@@ -8,6 +8,12 @@ export type PendingFamily = CreateFamilyPayload & {
   createdAt: string;
 };
 
+export type PendingFamiliesBackup = {
+  version: 1;
+  exportedAt: string;
+  pendingFamilies: PendingFamily[];
+};
+
 export type SyncPendingFamiliesResult = {
   syncedCount: number;
   duplicateCount: number;
@@ -17,6 +23,12 @@ export type SyncPendingFamiliesResult = {
 export type SavePendingFamilyResult = {
   saved: boolean;
   reason?: "duplicate";
+};
+
+export type RestorePendingFamiliesBackupResult = {
+  restoredCount: number;
+  duplicateCount: number;
+  totalCount: number;
 };
 
 function createOfflineId() {
@@ -51,6 +63,23 @@ function isDuplicateError(error: unknown) {
   return (
     error instanceof Error &&
     normalizeText(error.message).includes("duplicidade")
+  );
+}
+
+function isPendingFamily(value: unknown): value is PendingFamily {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const family = value as Record<string, unknown>;
+
+  return (
+    typeof family.offlineId === "string" &&
+    typeof family.createdAt === "string" &&
+    typeof family.nome_responsavel === "string" &&
+    typeof family.codigo_viela === "string" &&
+    typeof family.quantidade_moradores === "number" &&
+    typeof family.cep === "string"
   );
 }
 
@@ -101,6 +130,59 @@ export function savePendingFamily(
 
   return {
     saved: true,
+  };
+}
+
+export function createPendingFamiliesBackup(): PendingFamiliesBackup {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    pendingFamilies: getPendingFamilies(),
+  };
+}
+
+export function restorePendingFamiliesBackup(
+  backup: unknown,
+): RestorePendingFamiliesBackupResult {
+  if (!backup || typeof backup !== "object") {
+    throw new Error("Arquivo de backup inválido.");
+  }
+
+  const parsedBackup = backup as Record<string, unknown>;
+
+  if (
+    parsedBackup.version !== 1 ||
+    !Array.isArray(parsedBackup.pendingFamilies)
+  ) {
+    throw new Error("Arquivo de backup incompatível.");
+  }
+
+  const pendingFamiliesFromBackup =
+    parsedBackup.pendingFamilies.filter(isPendingFamily);
+  const currentPendingFamilies = getPendingFamilies();
+  const restoredFamilies: PendingFamily[] = [];
+  let duplicateCount = 0;
+
+  for (const family of pendingFamiliesFromBackup) {
+    if (
+      currentPendingFamilies.some((currentFamily) =>
+        isSameFamily(currentFamily, family),
+      ) ||
+      restoredFamilies.some((restoredFamily) => isSameFamily(restoredFamily, family))
+    ) {
+      duplicateCount += 1;
+      continue;
+    }
+
+    restoredFamilies.push(family);
+  }
+
+  writePendingFamilies([...currentPendingFamilies, ...restoredFamilies]);
+
+  return {
+    restoredCount: restoredFamilies.length,
+    duplicateCount,
+    totalCount: getPendingFamiliesCount(),
   };
 }
 
