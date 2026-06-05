@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from .forms import FamilyForm
 from .models import (
+    AnonymousComplaint,
     BasketAvailabilityNotification,
     DeliveryLog,
     Family,
@@ -124,6 +125,67 @@ class FamilyApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["region"]["nome"], "Norte")
         self.assertEqual(Family.objects.get().region, region)
+
+
+class AnonymousComplaintApiTests(TestCase):
+    def test_anonymous_complaint_can_be_registered_without_identity(self):
+        region = Region.objects.create(nome="Norte", codigo="norte")
+
+        response = self.client.post(
+            "/api/anonymous-complaints/",
+            data=json.dumps(
+                {
+                    "region_id": region.id,
+                    "codigo_viela": "Viela Azul",
+                    "category": "irregular_distribution",
+                    "description": "Entrega foi desviada antes de chegar na viela.",
+                    "nome": "Pessoa que não deve ser salva",
+                    "telefone": "81999990000",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        complaint = AnonymousComplaint.objects.get()
+        response_data = response.json()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response_data["protocol"].startswith("OUV-"))
+        self.assertEqual(complaint.region, region)
+        self.assertEqual(complaint.codigo_viela, "viela azul")
+        self.assertEqual(complaint.status, "new")
+        self.assertNotIn("nome", response_data)
+        self.assertNotIn("telefone", response_data)
+
+    def test_anonymous_complaint_requires_minimum_description(self):
+        response = self.client.post(
+            "/api/anonymous-complaints/",
+            data=json.dumps(
+                {
+                    "category": "other",
+                    "description": "curta",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(AnonymousComplaint.objects.count(), 0)
+
+    def test_anonymous_complaint_rejects_invalid_category(self):
+        response = self.client.post(
+            "/api/anonymous-complaints/",
+            data=json.dumps(
+                {
+                    "category": "identificacao_pessoal",
+                    "description": "Existe uma irregularidade para investigar.",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "Categoria inválida.")
 
 
 class DeliveryLogModelTests(TestCase):

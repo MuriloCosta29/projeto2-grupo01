@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.db.models import Max
 from django.urls import reverse
@@ -195,3 +197,61 @@ class BasketAvailabilityNotification(models.Model):
 
     def __str__(self):
         return f"{self.family} - {self.scheduled_for:%d/%m/%Y %H:%M}"
+
+
+class AnonymousComplaint(models.Model):
+    class Category(models.TextChoices):
+        IRREGULAR_DISTRIBUTION = (
+            "irregular_distribution",
+            "Irregularidade na distribuição",
+        )
+        CONFLICT = "conflict", "Conflito em campo"
+        DATA_ISSUE = "data_issue", "Dados incorretos"
+        OTHER = "other", "Outro"
+
+    class Status(models.TextChoices):
+        NEW = "new", "Nova"
+        IN_REVIEW = "in_review", "Em análise"
+        RESOLVED = "resolved", "Resolvida"
+
+    protocol = models.CharField(max_length=32, unique=True, editable=False)
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="anonymous_complaints",
+    )
+    codigo_viela = models.CharField(max_length=120, blank=True)
+    category = models.CharField(
+        max_length=40,
+        choices=Category.choices,
+        default=Category.OTHER,
+    )
+    description = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NEW,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "denúncia anônima"
+        verbose_name_plural = "denúncias anônimas"
+
+    def __str__(self):
+        return f"{self.protocol} - {self.get_category_display()}"
+
+    def save(self, *args, **kwargs):
+        if not self.protocol:
+            today = timezone.localdate().strftime("%Y%m%d")
+            suffix = uuid.uuid4().hex[:8].upper()
+            self.protocol = f"OUV-{today}-{suffix}"
+
+        self.codigo_viela = " ".join(self.codigo_viela.strip().split()).lower()
+        self.description = self.description.strip()
+
+        super().save(*args, **kwargs)
