@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 
 import "./App.css";
 import { AgentMonitoring } from "./components/AgentMonitoring";
@@ -20,7 +21,9 @@ import {
 } from "./services/api";
 import type { ProcessBasketAvailabilityPayload } from "./services/api";
 import {
+  createPendingFamiliesBackup,
   getPendingFamiliesCount,
+  restorePendingFamiliesBackup,
   syncPendingFamilies,
 } from "./services/offlineFamilies";
 import type {
@@ -205,6 +208,49 @@ function App() {
 
   function refreshPendingOfflineFamiliesCount() {
     setPendingOfflineFamiliesCount(getPendingFamiliesCount());
+  }
+
+  function handleDownloadOfflineBackup() {
+    const backup = createPendingFamiliesBackup();
+    const backupFile = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json",
+    });
+    const backupUrl = URL.createObjectURL(backupFile);
+    const downloadLink = document.createElement("a");
+    const exportedAt = new Date().toISOString().slice(0, 10);
+
+    downloadLink.href = backupUrl;
+    downloadLink.download = `presidente-de-rua-cadastros-offline-${exportedAt}.json`;
+    downloadLink.click();
+    URL.revokeObjectURL(backupUrl);
+  }
+
+  async function handleRestoreOfflineBackup(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const backupFile = event.currentTarget.files?.[0];
+
+    if (!backupFile) {
+      return;
+    }
+
+    try {
+      const backupContent = await backupFile.text();
+      const result = restorePendingFamiliesBackup(JSON.parse(backupContent));
+
+      refreshPendingOfflineFamiliesCount();
+      setOfflineSyncMessage(
+        `${result.restoredCount} cadastro(s) offline restaurado(s). ${result.duplicateCount} duplicado(s) ignorado(s).`,
+      );
+    } catch (caughtError) {
+      if (caughtError instanceof Error) {
+        setOfflineSyncMessage(caughtError.message);
+      } else {
+        setOfflineSyncMessage("Não foi possível restaurar o backup offline.");
+      }
+    } finally {
+      event.currentTarget.value = "";
+    }
   }
 
   async function handleSyncPendingFamilies() {
@@ -401,12 +447,36 @@ function App() {
         <p className="status error">{regionDashboardError}</p>
       )}
       {regionsError && <p className="status error">{regionsError}</p>}
-      {pendingOfflineFamiliesCount > 0 && (
-        <p className="status warning">
-          {pendingOfflineFamiliesCount} cadastro(s) offline aguardando
-          sincronização.
-        </p>
-      )}
+      <section className="panel offline-safety-panel">
+        <div>
+          <p className="eyebrow">Offline</p>
+          <h2>Segurança dos cadastros offline</h2>
+          <p className="muted">
+            {pendingOfflineFamiliesCount > 0
+              ? `${pendingOfflineFamiliesCount} cadastro(s) offline aguardando sincronização. Se limpar os dados do navegador antes de sincronizar, esses registros podem ser perdidos.`
+              : "Nenhum cadastro offline pendente. Se você tiver um backup salvo, pode restaurar por aqui."}
+          </p>
+        </div>
+
+        <div className="offline-safety-actions">
+          <button
+            type="button"
+            onClick={handleDownloadOfflineBackup}
+            disabled={pendingOfflineFamiliesCount === 0}
+          >
+            Baixar backup
+          </button>
+
+          <label>
+            Restaurar backup
+            <input
+              type="file"
+              accept="application/json"
+              onChange={handleRestoreOfflineBackup}
+            />
+          </label>
+        </div>
+      </section>
       {offlineSyncMessage && <p className="status success">{offlineSyncMessage}</p>}
 
       <FamilyForm
