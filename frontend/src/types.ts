@@ -57,6 +57,12 @@ export type BasketAvailabilityNotification = {
   created_at: string;
 };
 
+export type AnonymousComplaintResponse = {
+  protocol: string;
+  status: string;
+  created_at: string;
+};
+
 export type FieldAgentAttendedFamily = {
   id: number;
   nome_responsavel: string;

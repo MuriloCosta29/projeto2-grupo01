@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 from .forms import FamilyForm
 from .models import (
+    AnonymousComplaint,
     BasketAvailabilityNotification,
     DeliveryLog,
     Family,
@@ -221,6 +222,68 @@ def build_whatsapp_url(phone, message):
         return ""
 
     return f"https://wa.me/{normalized_phone}?text={quote(message)}"
+
+
+@csrf_exempt
+def anonymous_complaints_api(request):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method != "POST":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
+
+    description = str(payload.get("description", "")).strip()
+    category = payload.get("category") or AnonymousComplaint.Category.OTHER
+    region_id = payload.get("region_id")
+    codigo_viela = str(payload.get("codigo_viela", "")).strip()
+
+    if category not in AnonymousComplaint.Category.values:
+        return add_cors_headers(
+            JsonResponse({"error": "Categoria inválida."}, status=400)
+        )
+
+    if len(description) < 10:
+        return add_cors_headers(
+            JsonResponse(
+                {"error": "A denúncia precisa ter pelo menos 10 caracteres."},
+                status=400,
+            )
+        )
+
+    region = None
+
+    if region_id:
+        try:
+            region = Region.objects.get(id=region_id, ativo=True)
+        except Region.DoesNotExist:
+            return add_cors_headers(
+                JsonResponse({"error": "Região não encontrada."}, status=404)
+            )
+
+    complaint = AnonymousComplaint.objects.create(
+        region=region,
+        codigo_viela=codigo_viela,
+        category=category,
+        description=description,
+    )
+
+    return add_cors_headers(
+        JsonResponse(
+            {
+                "protocol": complaint.protocol,
+                "status": complaint.status,
+                "created_at": complaint.created_at.isoformat(),
+            },
+            status=201,
+        )
+    )
 
 
 @csrf_exempt
