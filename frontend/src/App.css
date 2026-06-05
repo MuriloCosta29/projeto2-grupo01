@@ -318,6 +318,60 @@
   text-decoration: none;
 }
 
+.anonymous-complaint {
+  display: grid;
+  gap: 16px;
+}
+
+.complaint-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.complaint-form label {
+  display: grid;
+  gap: 6px;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.complaint-form input,
+.complaint-form select,
+.complaint-form textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+}
+
+.complaint-form textarea {
+  resize: vertical;
+}
+
+.complaint-description {
+  grid-column: 1 / -1;
+}
+
+.complaint-form button {
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: #009689;
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.complaint-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .agent-monitoring-grid {
   display: grid;
   grid-template-columns: minmax(220px, 280px) 1fr;
@@ -597,6 +651,7 @@
 
 @media (max-width: 760px) {
   .notification-form,
+  .complaint-form,
   .agent-monitoring-grid,
   .agent-metrics,
   .region-metrics {

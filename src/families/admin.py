@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    AnonymousComplaint,
     BasketAvailabilityNotification,
     DeliveryLog,
     Family,
@@ -73,3 +74,18 @@ class BasketAvailabilityNotificationAdmin(admin.ModelAdmin):
         "processed_at",
         "created_at",
     )
+
+
+@admin.register(AnonymousComplaint)
+class AnonymousComplaintAdmin(admin.ModelAdmin):
+    list_display = (
+        "protocol",
+        "category",
+        "status",
+        "region",
+        "codigo_viela",
+        "created_at",
+    )
+    search_fields = ("protocol", "codigo_viela", "description", "region__nome")
+    list_filter = ("category", "status", "region", "created_at")
+    readonly_fields = ("protocol", "created_at", "updated_at")
