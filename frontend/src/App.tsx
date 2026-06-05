@@ -2,24 +2,29 @@ import { useEffect, useState } from "react";
 
 import "./App.css";
 import { AgentMonitoring } from "./components/AgentMonitoring";
+import { BasketAvailabilityNotifications } from "./components/BasketAvailabilityNotifications";
 import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
 import { FamilyDetails } from "./components/FamilyDetails";
 import { RegionDeliveryDashboard } from "./components/RegionDeliveryDashboard";
 import {
   getDashboardImpact,
+  getBasketAvailabilityNotifications,
   getFamilies,
   getFieldAgents,
   getRegionDeliveryImpact,
   getRegions,
+  processBasketAvailabilityNotifications,
   registerDelivery,
 } from "./services/api";
+import type { ProcessBasketAvailabilityPayload } from "./services/api";
 import {
   getPendingFamiliesCount,
   syncPendingFamilies,
 } from "./services/offlineFamilies";
 import type {
   DashboardImpact,
+  BasketAvailabilityNotification,
   Family,
   FieldAgent,
   Region,
@@ -43,6 +48,8 @@ function App() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [fieldAgents, setFieldAgents] = useState<FieldAgent[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
+  const [basketAvailabilityNotifications, setBasketAvailabilityNotifications] =
+    useState<BasketAvailabilityNotification[]>([]);
   const [regionDeliveryImpact, setRegionDeliveryImpact] = useState<
     RegionDeliveryImpact[]
   >([]);
@@ -61,6 +68,10 @@ function App() {
   const [dashboardError, setDashboardError] = useState("");
   const [regionDashboardError, setRegionDashboardError] = useState("");
   const [regionsError, setRegionsError] = useState("");
+  const [notificationsError, setNotificationsError] = useState("");
+  const [notificationsSuccess, setNotificationsSuccess] = useState("");
+  const [isProcessingNotifications, setIsProcessingNotifications] =
+    useState(false);
   const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
   const [deliverySuccess, setDeliverySuccess] = useState("");
@@ -180,6 +191,17 @@ function App() {
       });
   }
 
+  function loadBasketAvailabilityNotifications() {
+    return getBasketAvailabilityNotifications()
+      .then((data) => {
+        setBasketAvailabilityNotifications(data);
+        setNotificationsError("");
+      })
+      .catch(() => {
+        setNotificationsError("Não foi possível carregar as notificações.");
+      });
+  }
+
   function refreshPendingOfflineFamiliesCount() {
     setPendingOfflineFamiliesCount(getPendingFamiliesCount());
   }
@@ -214,6 +236,7 @@ function App() {
       await loadFieldAgents();
       await loadRegionDeliveryImpact();
       await loadRegions();
+      await loadBasketAvailabilityNotifications();
       return;
     }
 
@@ -233,6 +256,7 @@ function App() {
     loadFieldAgents();
     loadRegionDeliveryImpact();
     loadRegions();
+    loadBasketAvailabilityNotifications();
 
     if (navigator.onLine && getPendingFamiliesCount() > 0) {
       handleSyncPendingFamilies();
@@ -271,6 +295,7 @@ function App() {
       await loadFieldAgents();
       await loadRegionDeliveryImpact();
       await loadRegions();
+      await loadBasketAvailabilityNotifications();
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setDeliveryError(caughtError.message);
@@ -280,6 +305,32 @@ function App() {
       setDeliveryError("Não foi possível registrar a entrega.");
     } finally {
       setIsRegisteringDelivery(false);
+    }
+  }
+
+  async function handleProcessBasketAvailabilityNotifications(
+    payload: ProcessBasketAvailabilityPayload,
+  ) {
+    setIsProcessingNotifications(true);
+    setNotificationsError("");
+    setNotificationsSuccess("");
+
+    try {
+      const result = await processBasketAvailabilityNotifications(payload);
+
+      setNotificationsSuccess(
+        `${result.total_notifications} aviso(s) processado(s), ${result.created_count} novo(s).`,
+      );
+      await loadBasketAvailabilityNotifications();
+    } catch (caughtError) {
+      if (caughtError instanceof Error) {
+        setNotificationsError(caughtError.message);
+        return;
+      }
+
+      setNotificationsError("Não foi possível processar os avisos.");
+    } finally {
+      setIsProcessingNotifications(false);
     }
   }
 
@@ -328,6 +379,15 @@ function App() {
         regions={regionDeliveryImpact}
         selectedRegion={selectedRegion}
         onSelectRegion={setSelectedRegion}
+      />
+
+      <BasketAvailabilityNotifications
+        regions={regions}
+        notifications={basketAvailabilityNotifications}
+        isProcessing={isProcessingNotifications}
+        error={notificationsError}
+        success={notificationsSuccess}
+        onProcess={handleProcessBasketAvailabilityNotifications}
       />
 
       {loading && <p className="status">Carregando famílias...</p>}

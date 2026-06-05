@@ -1,6 +1,7 @@
 // Assume endpoint: `GET /api/families`
 
 import type {
+  BasketAvailabilityNotification,
   DashboardImpact,
   Family,
   FieldAgent,
@@ -61,9 +62,24 @@ export async function getFieldAgents(): Promise<FieldAgent[]> {
   return response.json();
 }
 
+export async function getBasketAvailabilityNotifications(): Promise<
+  BasketAvailabilityNotification[]
+> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/basket-availability-notifications/`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar notificações de disponibilidade.");
+  }
+
+  return response.json();
+}
+
 export type CreateFamilyPayload = {
   region_id?: number;
   nome_responsavel: string;
+  telefone?: string;
   quantidade_moradores: number;
   codigo_viela: string;
   cep: string;
@@ -84,6 +100,40 @@ export async function createFamily(
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error ?? "Erro ao cadastrar família.");
+  }
+
+  return response.json();
+}
+
+export type ProcessBasketAvailabilityPayload = {
+  region_id: number;
+  scheduled_for: string;
+  pickup_location: string;
+};
+
+export type ProcessBasketAvailabilityResponse = {
+  created_count: number;
+  total_notifications: number;
+  notifications: BasketAvailabilityNotification[];
+};
+
+export async function processBasketAvailabilityNotifications(
+  payload: ProcessBasketAvailabilityPayload,
+): Promise<ProcessBasketAvailabilityResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/basket-availability-notifications/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error ?? "Erro ao processar notificações.");
   }
 
   return response.json();

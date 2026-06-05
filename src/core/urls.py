@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path
 
 from families.views import (
+    basket_availability_notifications_api,
     dashboard_impact_api,
     dashboard_regions_api,
     families_api,
@@ -17,6 +18,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/dashboard/impact/", dashboard_impact_api),
     path("api/dashboard/regions/", dashboard_regions_api),
+    path(
+        "api/basket-availability-notifications/",
+        basket_availability_notifications_api,
+    ),
     path("api/field-agents/", field_agents_api),
     path("api/regions/", regions_api),
     path("api/families/", families_api),

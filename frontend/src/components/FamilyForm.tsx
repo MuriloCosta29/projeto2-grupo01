@@ -33,6 +33,7 @@ export function FamilyForm({
     const payload = {
       ...(regionId ? { region_id: regionId } : {}),
       nome_responsavel: String(formData.get("nome_responsavel") || ""),
+      telefone: String(formData.get("telefone") || ""),
       quantidade_moradores: Number(formData.get("quantidade_moradores") || 1),
       codigo_viela: String(formData.get("codigo_viela") || ""),
       cep: String(formData.get("cep") || ""),
@@ -94,6 +95,11 @@ export function FamilyForm({
         <label>
           Número de moradores
           <input name="quantidade_moradores" type="number" min="1" required />
+        </label>
+
+        <label>
+          WhatsApp / telefone
+          <input name="telefone" type="tel" />
         </label>
 
         <label>

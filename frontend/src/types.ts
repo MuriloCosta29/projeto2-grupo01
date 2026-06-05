@@ -38,6 +38,25 @@ export type RegionDeliveryImpact = {
   total_deliveries: number;
 };
 
+export type BasketAvailabilityNotification = {
+  id: number;
+  family: {
+    id: number;
+    nome_responsavel: string;
+    telefone: string;
+  };
+  region: Region | null;
+  channel: string;
+  status: "ready" | "no_contact";
+  scheduled_for: string;
+  pickup_location: string;
+  message: string;
+  contact_value: string;
+  notification_url: string;
+  processed_at: string;
+  created_at: string;
+};
+
 export type FieldAgentAttendedFamily = {
   id: number;
   nome_responsavel: string;
