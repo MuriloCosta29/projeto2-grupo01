@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import "./App.css";
 import { AgentMonitoring } from "./components/AgentMonitoring";
+import { AnonymousComplaintForm } from "./components/AnonymousComplaintForm";
 import { BasketAvailabilityNotifications } from "./components/BasketAvailabilityNotifications";
 import { FamilyList } from "./components/FamilyList";
 import { FamilyForm } from "./components/FamilyForm.tsx";
@@ -389,6 +390,8 @@ function App() {
         success={notificationsSuccess}
         onProcess={handleProcessBasketAvailabilityNotifications}
       />
+
+      <AnonymousComplaintForm regions={regions} />
 
       {loading && <p className="status">Carregando famílias...</p>}
       {error && <p className="status error">{error}</p>}

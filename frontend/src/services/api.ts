@@ -1,6 +1,7 @@
 // Assume endpoint: `GET /api/families`
 
 import type {
+  AnonymousComplaintResponse,
   BasketAvailabilityNotification,
   DashboardImpact,
   Family,
@@ -134,6 +135,32 @@ export async function processBasketAvailabilityNotifications(
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error ?? "Erro ao processar notificações.");
+  }
+
+  return response.json();
+}
+
+export type CreateAnonymousComplaintPayload = {
+  region_id?: number;
+  codigo_viela?: string;
+  category: string;
+  description: string;
+};
+
+export async function createAnonymousComplaint(
+  payload: CreateAnonymousComplaintPayload,
+): Promise<AnonymousComplaintResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/anonymous-complaints/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error ?? "Erro ao registrar denúncia.");
   }
 
   return response.json();
