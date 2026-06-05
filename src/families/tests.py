@@ -5,7 +5,13 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .forms import FamilyForm
-from .models import DeliveryLog, Family, FieldAgent, Region
+from .models import (
+    BasketAvailabilityNotification,
+    DeliveryLog,
+    Family,
+    FieldAgent,
+    Region,
+)
 
 
 class FamilyModelTests(TestCase):
@@ -331,6 +337,105 @@ class DashboardRegionsApiTests(TestCase):
                 }
             ],
         )
+
+
+class BasketAvailabilityNotificationApiTests(TestCase):
+    def test_processes_basket_availability_notifications_by_region(self):
+        north_region = Region.objects.create(nome="Norte", codigo="norte")
+        south_region = Region.objects.create(nome="Sul", codigo="sul")
+        notified_family = Family.objects.create(
+            region=north_region,
+            nome_responsavel="Ana Souza",
+            telefone="81999990000",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+        Family.objects.create(
+            region=south_region,
+            nome_responsavel="Bruno Lima",
+            telefone="81988880000",
+            codigo_viela="Viela 02",
+            quantidade_moradores=4,
+        )
+
+        response = self.client.post(
+            "/api/basket-availability-notifications/",
+            data=json.dumps(
+                {
+                    "region_id": north_region.id,
+                    "scheduled_for": "2026-06-10T09:00:00",
+                    "pickup_location": "Associação Comunitária",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        notification = BasketAvailabilityNotification.objects.get()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["created_count"], 1)
+        self.assertEqual(notification.family, notified_family)
+        self.assertEqual(notification.status, "ready")
+        self.assertIn("Associação Comunitária", notification.message)
+        self.assertIn("https://wa.me/5581999990000", notification.notification_url)
+
+    def test_marks_notification_without_phone_as_no_contact(self):
+        region = Region.objects.create(nome="Norte", codigo="norte")
+        Family.objects.create(
+            region=region,
+            nome_responsavel="Ana Souza",
+            telefone="",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+
+        response = self.client.post(
+            "/api/basket-availability-notifications/",
+            data=json.dumps(
+                {
+                    "region_id": region.id,
+                    "scheduled_for": "2026-06-10T09:00:00",
+                    "pickup_location": "Associação Comunitária",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        notification = BasketAvailabilityNotification.objects.get()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(notification.status, "no_contact")
+        self.assertEqual(notification.notification_url, "")
+
+    def test_does_not_duplicate_same_availability_notification_batch(self):
+        region = Region.objects.create(nome="Norte", codigo="norte")
+        Family.objects.create(
+            region=region,
+            nome_responsavel="Ana Souza",
+            telefone="81999990000",
+            codigo_viela="Viela 01",
+            quantidade_moradores=3,
+        )
+        payload = {
+            "region_id": region.id,
+            "scheduled_for": "2026-06-10T09:00:00",
+            "pickup_location": "Associação Comunitária",
+        }
+
+        self.client.post(
+            "/api/basket-availability-notifications/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        response = self.client.post(
+            "/api/basket-availability-notifications/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["created_count"], 0)
+        self.assertEqual(BasketAvailabilityNotification.objects.count(), 1)
 
 
 class FieldAgentMonitoringApiTests(TestCase):

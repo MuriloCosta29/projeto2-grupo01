@@ -115,6 +115,7 @@ export async function syncPendingFamilies(): Promise<SyncPendingFamiliesResult> 
       await createFamily({
         ...(family.region_id ? { region_id: family.region_id } : {}),
         nome_responsavel: family.nome_responsavel,
+        telefone: family.telefone,
         quantidade_moradores: family.quantidade_moradores,
         codigo_viela: family.codigo_viela,
         cep: family.cep,

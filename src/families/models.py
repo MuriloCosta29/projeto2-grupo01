@@ -142,3 +142,56 @@ class DeliveryLog(models.Model):
 
     def __str__(self):
         return f"{self.family} - {self.delivery_date:%d/%m/%Y}"
+
+
+class BasketAvailabilityNotification(models.Model):
+    class Channel(models.TextChoices):
+        WHATSAPP = "whatsapp", "WhatsApp"
+
+    class Status(models.TextChoices):
+        READY = "ready", "Pronta para envio"
+        NO_CONTACT = "no_contact", "Sem contato"
+
+    family = models.ForeignKey(
+        Family,
+        on_delete=models.CASCADE,
+        related_name="availability_notifications",
+    )
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="availability_notifications",
+    )
+    channel = models.CharField(
+        max_length=20,
+        choices=Channel.choices,
+        default=Channel.WHATSAPP,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.READY,
+    )
+    scheduled_for = models.DateTimeField()
+    pickup_location = models.CharField(max_length=200)
+    message = models.TextField()
+    contact_value = models.CharField(max_length=40, blank=True)
+    notification_url = models.URLField(blank=True)
+    processed_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["family", "scheduled_for", "pickup_location"],
+                name="unique_basket_availability_notification",
+            )
+        ]
+        verbose_name = "notificação de disponibilidade"
+        verbose_name_plural = "notificações de disponibilidade"
+
+    def __str__(self):
+        return f"{self.family} - {self.scheduled_for:%d/%m/%Y %H:%M}"
