@@ -38,7 +38,15 @@ class Region(models.Model):
 
 
 class FieldAgent(models.Model):
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="field_agents",
+    )
     nome = models.CharField(max_length=200)
+    telefone = models.CharField(max_length=30, blank=True)
     codigo_area = models.CharField(max_length=120, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -50,6 +58,13 @@ class FieldAgent(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def save(self, *args, **kwargs):
+        self.nome = " ".join(self.nome.strip().split()).title()
+        self.telefone = self.telefone.strip()
+        self.codigo_area = " ".join(self.codigo_area.strip().split())
+
+        super().save(*args, **kwargs)
 
 
 class Family(models.Model):
