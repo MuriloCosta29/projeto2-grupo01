@@ -70,7 +70,9 @@ export type FieldAgentAttendedFamily = {
 
 export type FieldAgent = {
   id: number;
+  region: Region | null;
   nome: string;
+  telefone: string;
   codigo_area: string;
   ativo: boolean;
   assigned_families_count: number;
