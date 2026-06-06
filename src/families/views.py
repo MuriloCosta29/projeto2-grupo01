@@ -96,49 +96,161 @@ def regions_api(request):
     return add_cors_headers(JsonResponse(data, safe=False))
 
 
+def serialize_field_agent(agent):
+    deliveries = list(agent.deliveries.all())
+    attended_families = {
+        delivery.family_id: delivery.family.nome_responsavel
+        for delivery in deliveries
+    }
+
+    return {
+        "id": agent.id,
+        "region": (
+            {
+                "id": agent.region.id,
+                "nome": agent.region.nome,
+                "codigo": agent.region.codigo,
+            }
+            if agent.region
+            else None
+        ),
+        "nome": agent.nome,
+        "telefone": agent.telefone,
+        "codigo_area": agent.codigo_area,
+        "ativo": agent.ativo,
+        "assigned_families_count": agent.assigned_families.count(),
+        "attended_families_count": len(attended_families),
+        "deliveries_count": len(deliveries),
+        "attended_families": sorted(
+            [
+                {
+                    "id": family_id,
+                    "nome_responsavel": family_name,
+                }
+                for family_id, family_name in attended_families.items()
+            ],
+            key=lambda family: family["nome_responsavel"],
+        ),
+    }
+
+
+def get_active_region_or_none(region_id):
+    if not region_id:
+        return None
+
+    return Region.objects.get(id=region_id, ativo=True)
+
+
+@csrf_exempt
 def field_agents_api(request):
-    if request.method != "GET":
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method == "GET":
+        agents = FieldAgent.objects.select_related("region").prefetch_related(
+            "assigned_families",
+            "deliveries__family",
+        ).all()
+
+        return add_cors_headers(
+            JsonResponse(
+                [serialize_field_agent(agent) for agent in agents],
+                safe=False,
+            )
+        )
+
+    if request.method != "POST":
         return add_cors_headers(
             JsonResponse({"error": "Método não permitido."}, status=405)
         )
 
-    agents = FieldAgent.objects.prefetch_related(
-        "assigned_families",
-        "deliveries__family",
-    ).all()
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
 
-    data = []
+    nome = str(payload.get("nome", "")).strip()
 
-    for agent in agents:
-        deliveries = list(agent.deliveries.all())
-        attended_families = {
-            delivery.family_id: delivery.family.nome_responsavel
-            for delivery in deliveries
-        }
-
-        data.append(
-            {
-                "id": agent.id,
-                "nome": agent.nome,
-                "codigo_area": agent.codigo_area,
-                "ativo": agent.ativo,
-                "assigned_families_count": agent.assigned_families.count(),
-                "attended_families_count": len(attended_families),
-                "deliveries_count": len(deliveries),
-                "attended_families": sorted(
-                    [
-                        {
-                            "id": family_id,
-                            "nome_responsavel": family_name,
-                        }
-                        for family_id, family_name in attended_families.items()
-                    ],
-                    key=lambda family: family["nome_responsavel"],
-                ),
-            }
+    if not nome:
+        return add_cors_headers(
+            JsonResponse({"error": "Nome é obrigatório."}, status=400)
         )
 
-    return add_cors_headers(JsonResponse(data, safe=False))
+    try:
+        region = get_active_region_or_none(payload.get("region_id"))
+    except Region.DoesNotExist:
+        return add_cors_headers(
+            JsonResponse({"error": "Região não encontrada."}, status=404)
+        )
+
+    agent = FieldAgent.objects.create(
+        region=region,
+        nome=nome,
+        telefone=payload.get("telefone", ""),
+        codigo_area=payload.get("codigo_area", ""),
+        ativo=payload.get("ativo", True),
+    )
+
+    return add_cors_headers(JsonResponse(serialize_field_agent(agent), status=201))
+
+
+@csrf_exempt
+def field_agent_detail_api(request, agent_id):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method != "PATCH":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    try:
+        agent = FieldAgent.objects.get(id=agent_id)
+    except FieldAgent.DoesNotExist:
+        return add_cors_headers(
+            JsonResponse({"error": "Presidente de Rua não encontrado."}, status=404)
+        )
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
+
+    if "nome" in payload:
+        nome = str(payload.get("nome", "")).strip()
+
+        if not nome:
+            return add_cors_headers(
+                JsonResponse({"error": "Nome é obrigatório."}, status=400)
+            )
+
+        agent.nome = nome
+
+    if "telefone" in payload:
+        agent.telefone = payload.get("telefone", "")
+
+    if "codigo_area" in payload:
+        agent.codigo_area = payload.get("codigo_area", "")
+
+    if "ativo" in payload:
+        agent.ativo = bool(payload.get("ativo"))
+
+    if "region_id" in payload:
+        try:
+            agent.region = get_active_region_or_none(payload.get("region_id"))
+        except Region.DoesNotExist:
+            return add_cors_headers(
+                JsonResponse({"error": "Região não encontrada."}, status=404)
+            )
+
+    agent.save()
+
+    agent = FieldAgent.objects.select_related("region").prefetch_related(
+        "assigned_families",
+        "deliveries__family",
+    ).get(id=agent.id)
+
+    return add_cors_headers(JsonResponse(serialize_field_agent(agent)))
 
 
 class HomeView(TemplateView):
@@ -161,7 +273,7 @@ class FamilyCreateView(CreateView):
 
 def add_cors_headers(response):
     response["Access-Control-Allow-Origin"] = "*"
-    response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response["Access-Control-Allow-Methods"] = "GET, POST, PATCH, OPTIONS"
     response["Access-Control-Allow-Headers"] = "Content-Type"
     return response
 

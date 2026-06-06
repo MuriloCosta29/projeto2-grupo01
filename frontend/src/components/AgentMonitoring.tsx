@@ -42,7 +42,10 @@ export function AgentMonitoring({
                 onClick={() => onSelectAgent(agent)}
               >
                 <strong>{agent.nome}</strong>
-                <span>{agent.codigo_area || "Área não informada"}</span>
+                <span>
+                  {agent.region?.nome ?? (agent.codigo_area || "Área não informada")}
+                </span>
+                {agent.telefone && <small>{agent.telefone}</small>}
                 <small>{agent.ativo ? "Ativo" : "Inativo"}</small>
               </button>
             ))}
