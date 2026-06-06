@@ -20,9 +20,9 @@ class RegionAdmin(admin.ModelAdmin):
 
 @admin.register(FieldAgent)
 class FieldAgentAdmin(admin.ModelAdmin):
-    list_display = ("nome", "codigo_area", "ativo", "criado_em")
-    search_fields = ("nome", "codigo_area")
-    list_filter = ("ativo",)
+    list_display = ("nome", "telefone", "codigo_area", "region", "ativo", "criado_em")
+    search_fields = ("nome", "telefone", "codigo_area", "region__nome")
+    list_filter = ("ativo", "region")
     readonly_fields = ("criado_em",)
 
 

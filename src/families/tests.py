@@ -501,6 +501,73 @@ class BasketAvailabilityNotificationApiTests(TestCase):
 
 
 class FieldAgentMonitoringApiTests(TestCase):
+    def test_field_agent_can_be_created_by_coordination(self):
+        region = Region.objects.create(nome="Norte", codigo="norte")
+
+        response = self.client.post(
+            "/api/field-agents/",
+            data=json.dumps(
+                {
+                    "region_id": region.id,
+                    "nome": "joão presidente",
+                    "telefone": "81999990000",
+                    "codigo_area": "Setor Norte",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        agent = FieldAgent.objects.get()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(agent.nome, "João Presidente")
+        self.assertEqual(agent.telefone, "81999990000")
+        self.assertEqual(agent.codigo_area, "Setor Norte")
+        self.assertEqual(agent.region, region)
+        self.assertTrue(agent.ativo)
+
+    def test_field_agent_can_be_updated_by_coordination(self):
+        agent = FieldAgent.objects.create(nome="João Presidente")
+        region = Region.objects.create(nome="Sul", codigo="sul")
+
+        response = self.client.patch(
+            f"/api/field-agents/{agent.id}/",
+            data=json.dumps(
+                {
+                    "region_id": region.id,
+                    "nome": "joão coordenador",
+                    "telefone": "81988880000",
+                    "codigo_area": "Setor Sul",
+                    "ativo": False,
+                }
+            ),
+            content_type="application/json",
+        )
+
+        agent.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(agent.nome, "João Coordenador")
+        self.assertEqual(agent.telefone, "81988880000")
+        self.assertEqual(agent.codigo_area, "Setor Sul")
+        self.assertEqual(agent.region, region)
+        self.assertFalse(agent.ativo)
+
+    def test_field_agent_creation_requires_name(self):
+        response = self.client.post(
+            "/api/field-agents/",
+            data=json.dumps(
+                {
+                    "nome": "",
+                    "codigo_area": "Setor Norte",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "Nome é obrigatório.")
+
     def test_field_agent_monitoring_shows_attended_families_and_frequency(self):
         agent = FieldAgent.objects.create(
             nome="João Presidente",

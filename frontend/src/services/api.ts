@@ -63,6 +63,59 @@ export async function getFieldAgents(): Promise<FieldAgent[]> {
   return response.json();
 }
 
+export type CreateFieldAgentPayload = {
+  region_id?: number;
+  nome: string;
+  telefone: string;
+  codigo_area: string;
+  ativo?: boolean;
+};
+
+export type UpdateFieldAgentPayload = Partial<
+  Omit<CreateFieldAgentPayload, "region_id">
+> & {
+  region_id?: number | null;
+};
+
+export async function createFieldAgent(
+  payload: CreateFieldAgentPayload,
+): Promise<FieldAgent> {
+  const response = await fetch(`${API_BASE_URL}/api/field-agents/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error ?? "Erro ao cadastrar Presidente de Rua.");
+  }
+
+  return response.json();
+}
+
+export async function updateFieldAgent(
+  agentId: number,
+  payload: UpdateFieldAgentPayload,
+): Promise<FieldAgent> {
+  const response = await fetch(`${API_BASE_URL}/api/field-agents/${agentId}/`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error ?? "Erro ao atualizar Presidente de Rua.");
+  }
+
+  return response.json();
+}
+
 export async function getBasketAvailabilityNotifications(): Promise<
   BasketAvailabilityNotification[]
 > {
