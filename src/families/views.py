@@ -9,6 +9,7 @@ import json
 from urllib.parse import quote
 
 from .forms import FamilyForm
+from .ratelimit import rate_limit
 from .models import (
     AnonymousComplaint,
     BasketAvailabilityNotification,
@@ -375,6 +376,7 @@ def build_whatsapp_url(phone, message):
 
 
 @csrf_exempt
+@rate_limit("anonymous_complaints", limit=10, window_seconds=600)
 def anonymous_complaints_api(request):
     if request.method == "OPTIONS":
         return add_cors_headers(JsonResponse({}))

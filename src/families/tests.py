@@ -1,5 +1,6 @@
 import json
 
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
@@ -128,6 +129,10 @@ class FamilyApiTests(TestCase):
 
 
 class AnonymousComplaintApiTests(TestCase):
+    def setUp(self):
+        # Zera o contador do rate limit entre os testes.
+        cache.clear()
+
     def test_anonymous_complaint_can_be_registered_without_identity(self):
         region = Region.objects.create(nome="Norte", codigo="norte")
 
@@ -186,6 +191,31 @@ class AnonymousComplaintApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"], "Categoria inválida.")
+
+    def test_anonymous_complaint_is_rate_limited_after_limit(self):
+        payload = json.dumps(
+            {
+                "category": "other",
+                "description": "Existe uma irregularidade para investigar.",
+            }
+        )
+
+        for _ in range(10):
+            allowed_response = self.client.post(
+                "/api/anonymous-complaints/",
+                data=payload,
+                content_type="application/json",
+            )
+            self.assertEqual(allowed_response.status_code, 201)
+
+        blocked_response = self.client.post(
+            "/api/anonymous-complaints/",
+            data=payload,
+            content_type="application/json",
+        )
+
+        self.assertEqual(blocked_response.status_code, 429)
+        self.assertEqual(AnonymousComplaint.objects.count(), 10)
 
 
 class DeliveryLogModelTests(TestCase):
