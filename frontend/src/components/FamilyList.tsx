@@ -1,6 +1,7 @@
 // Cria lista de famílias
 
 import type { Family } from "../types";
+import { EmptyState } from "./ui/EmptyState";
 
 type FamilyListProps = {
   families: Family[];
@@ -29,7 +30,11 @@ export function FamilyList({
     return (
       <section className="panel">
         <h2>Fila de Prioridade</h2>
-        <p className="muted">Nenhuma família cadastrada ainda.</p>
+        <EmptyState
+          compact
+          title="Nenhuma família cadastrada"
+          description="Cadastre famílias para montar a fila de prioridade por tempo de espera."
+        />
       </section>
     );
   }

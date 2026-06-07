@@ -53,6 +53,29 @@ export async function getRegions(): Promise<Region[]> {
   return response.json();
 }
 
+export type CreateRegionPayload = {
+  nome: string;
+};
+
+export async function createRegion(
+  payload: CreateRegionPayload,
+): Promise<Region> {
+  const response = await fetch(`${API_BASE_URL}/api/regions/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error ?? "Erro ao cadastrar região.");
+  }
+
+  return response.json();
+}
+
 export async function getFieldAgents(): Promise<FieldAgent[]> {
   const response = await fetch(`${API_BASE_URL}/api/field-agents/`);
 

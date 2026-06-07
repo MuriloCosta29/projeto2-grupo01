@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 
 import type { ProcessBasketAvailabilityPayload } from "../services/api";
 import type { BasketAvailabilityNotification, Region } from "../types";
+import { EmptyState } from "./ui/EmptyState";
 
 type BasketAvailabilityNotificationsProps = {
   regions: Region[];
@@ -22,6 +23,7 @@ export function BasketAvailabilityNotifications({
   onProcess,
 }: BasketAvailabilityNotificationsProps) {
   const [selectedRegionId, setSelectedRegionId] = useState("");
+  const [localError, setLocalError] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,12 +31,35 @@ export function BasketAvailabilityNotifications({
     const form = event.currentTarget;
     const formData = new FormData(form);
     const regionId = Number(formData.get("region_id"));
+    const scheduledDate = String(formData.get("scheduled_date") || "");
+    const scheduledTime = String(formData.get("scheduled_time") || "");
+    const pickupLocation = String(formData.get("pickup_location") || "").trim();
+
+    setLocalError("");
+
+    if (!regionId) {
+      setLocalError("Selecione uma região antes de processar os avisos.");
+      return;
+    }
+
+    if (!scheduledDate || !scheduledTime) {
+      setLocalError("Informe a data e o horário de retirada.");
+      return;
+    }
+
+    if (!pickupLocation) {
+      setLocalError("Informe o local de retirada.");
+      return;
+    }
 
     await onProcess({
       region_id: regionId,
-      scheduled_for: String(formData.get("scheduled_for") || ""),
-      pickup_location: String(formData.get("pickup_location") || ""),
+      scheduled_for: `${scheduledDate}T${scheduledTime}`,
+      pickup_location: pickupLocation,
     });
+
+    form.reset();
+    setSelectedRegionId("");
   }
 
   return (
@@ -50,14 +75,19 @@ export function BasketAvailabilityNotifications({
       </div>
 
       {success && <p className="status success">{success}</p>}
+      {localError && <p className="status error">{localError}</p>}
       {error && <p className="status error">{error}</p>}
+      {regions.length === 0 && (
+        <p className="status warning">
+          Cadastre uma região antes de processar avisos de cesta.
+        </p>
+      )}
 
-      <form className="notification-form" onSubmit={handleSubmit}>
+      <form className="notification-form" onSubmit={handleSubmit} noValidate>
         <label>
           Região
           <select
             name="region_id"
-            required
             value={selectedRegionId}
             onChange={(event) => setSelectedRegionId(event.target.value)}
             disabled={regions.length === 0 || isProcessing}
@@ -72,13 +102,22 @@ export function BasketAvailabilityNotifications({
         </label>
 
         <label>
-          Data e horário
-          <input name="scheduled_for" type="datetime-local" required />
+          Data da retirada
+          <input name="scheduled_date" type="date" disabled={isProcessing} />
+        </label>
+
+        <label>
+          Horário
+          <input name="scheduled_time" type="time" disabled={isProcessing} />
         </label>
 
         <label>
           Local de retirada
-          <input name="pickup_location" required />
+          <input
+            name="pickup_location"
+            placeholder="Ex: Avenida Norte"
+            disabled={isProcessing}
+          />
         </label>
 
         <button type="submit" disabled={isProcessing || regions.length === 0}>
@@ -88,7 +127,11 @@ export function BasketAvailabilityNotifications({
 
       <div className="notification-list">
         {notifications.length === 0 && (
-          <p className="muted">Nenhuma notificação processada ainda.</p>
+          <EmptyState
+            compact
+            title="Nenhuma notificação processada"
+            description="Quando um lote for liberado, os avisos por família aparecerão aqui."
+          />
         )}
 
         {notifications.map((notification) => (

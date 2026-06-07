@@ -1,4 +1,5 @@
 import type { FieldAgent } from "../types";
+import { EmptyState } from "./ui/EmptyState";
 
 type AgentMonitoringProps = {
   agents: FieldAgent[];
@@ -17,14 +18,19 @@ export function AgentMonitoring({
         <div>
           <p className="eyebrow">US09</p>
           <h2>Agentes em Campo</h2>
+          <p className="muted">
+            Acompanhe atuação, entregas registradas e famílias atendidas.
+          </p>
         </div>
         <span>{agents.length} agentes</span>
       </div>
 
       {agents.length === 0 && (
-        <p className="muted">
-          Nenhum Presidente de Rua cadastrado para monitoramento.
-        </p>
+        <EmptyState
+          compact
+          title="Nenhum Presidente de Rua cadastrado"
+          description="Cadastre um agente para acompanhar famílias atendidas, frequência e entregas em campo."
+        />
       )}
 
       {agents.length > 0 && (
@@ -46,16 +52,24 @@ export function AgentMonitoring({
                   {agent.region?.nome ?? (agent.codigo_area || "Área não informada")}
                 </span>
                 {agent.telefone && <small>{agent.telefone}</small>}
-                <small>{agent.ativo ? "Ativo" : "Inativo"}</small>
+                <small
+                  className={
+                    agent.ativo ? "agent-status-active" : "agent-status-inactive"
+                  }
+                >
+                  {agent.ativo ? "Ativo" : "Inativo"}
+                </small>
               </button>
             ))}
           </div>
 
           <div className="agent-details">
             {!selectedAgent && (
-              <p className="muted">
-                Selecione um Presidente de Rua para ver o atendimento.
-              </p>
+              <EmptyState
+                compact
+                title="Selecione um Presidente de Rua"
+                description="Os indicadores de atendimento aparecerão neste painel."
+              />
             )}
 
             {selectedAgent && (
@@ -80,9 +94,11 @@ export function AgentMonitoring({
                 <h4>Famílias atendidas</h4>
 
                 {selectedAgent.attended_families.length === 0 && (
-                  <p className="muted">
-                    Nenhuma família atendida por este agente ainda.
-                  </p>
+                  <EmptyState
+                    compact
+                    title="Nenhuma família atendida"
+                    description="Quando este agente registrar entregas, as famílias aparecerão aqui."
+                  />
                 )}
 
                 {selectedAgent.attended_families.length > 0 && (
