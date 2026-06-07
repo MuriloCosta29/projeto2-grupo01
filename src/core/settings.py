@@ -23,6 +23,10 @@ RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
+# Origem liberada para CORS. Em produção, aponte para o domínio do front (Vercel).
+# Sem a variável (dev local), fica liberado para qualquer origem.
+CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN", "*")
+
 # Application definition
 
 INSTALLED_APPS = [

@@ -1,5 +1,6 @@
 import json
 
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.test import TestCase
@@ -8,12 +9,24 @@ from django.urls import reverse
 from .forms import FamilyForm
 from .models import (
     AnonymousComplaint,
+    AuthToken,
     BasketAvailabilityNotification,
     DeliveryLog,
     Family,
     FieldAgent,
     Region,
 )
+
+
+def admin_auth_headers(username="coordenacao"):
+    """Cria um usuário staff + token e devolve o header de Authorization pronto."""
+    user = get_user_model().objects.create_user(
+        username=username,
+        password="senha-forte-123",
+        is_staff=True,
+    )
+    token = AuthToken.objects.create(user=user)
+    return {"HTTP_AUTHORIZATION": f"Token {token.key}"}
 
 
 class FamilyModelTests(TestCase):
@@ -371,6 +384,9 @@ class DashboardImpactApiTests(TestCase):
 
 
 class DashboardRegionsApiTests(TestCase):
+    def setUp(self):
+        self.auth = admin_auth_headers()
+
     def test_dashboard_filters_deliveries_by_region(self):
         north_region = Region.objects.create(nome="Norte", codigo="norte")
         south_region = Region.objects.create(nome="Sul", codigo="sul")
@@ -440,6 +456,7 @@ class DashboardRegionsApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         region = Region.objects.get()
@@ -461,6 +478,7 @@ class DashboardRegionsApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -471,6 +489,9 @@ class DashboardRegionsApiTests(TestCase):
 
 
 class BasketAvailabilityNotificationApiTests(TestCase):
+    def setUp(self):
+        self.auth = admin_auth_headers()
+
     def test_processes_basket_availability_notifications_by_region(self):
         north_region = Region.objects.create(nome="Norte", codigo="norte")
         south_region = Region.objects.create(nome="Sul", codigo="sul")
@@ -499,6 +520,7 @@ class BasketAvailabilityNotificationApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         notification = BasketAvailabilityNotification.objects.get()
@@ -530,6 +552,7 @@ class BasketAvailabilityNotificationApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         notification = BasketAvailabilityNotification.objects.get()
@@ -557,11 +580,13 @@ class BasketAvailabilityNotificationApiTests(TestCase):
             "/api/basket-availability-notifications/",
             data=json.dumps(payload),
             content_type="application/json",
+            **self.auth,
         )
         response = self.client.post(
             "/api/basket-availability-notifications/",
             data=json.dumps(payload),
             content_type="application/json",
+            **self.auth,
         )
 
         self.assertEqual(response.status_code, 201)
@@ -570,6 +595,9 @@ class BasketAvailabilityNotificationApiTests(TestCase):
 
 
 class FieldAgentMonitoringApiTests(TestCase):
+    def setUp(self):
+        self.auth = admin_auth_headers()
+
     def test_field_agent_can_be_created_by_coordination(self):
         region = Region.objects.create(nome="Norte", codigo="norte")
 
@@ -584,6 +612,7 @@ class FieldAgentMonitoringApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         agent = FieldAgent.objects.get()
@@ -611,6 +640,7 @@ class FieldAgentMonitoringApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         agent.refresh_from_db()
@@ -632,6 +662,7 @@ class FieldAgentMonitoringApiTests(TestCase):
                 }
             ),
             content_type="application/json",
+            **self.auth,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -673,3 +704,92 @@ class FieldAgentMonitoringApiTests(TestCase):
                 {"id": second_family.id, "nome_responsavel": "Bruno Lima"},
             ],
         )
+
+
+class AuthApiTests(TestCase):
+    def setUp(self):
+        cache.clear()  # o login tem rate limit; zera entre os testes
+        self.user = get_user_model().objects.create_user(
+            username="coord",
+            password="senha-forte-123",
+            is_staff=True,
+        )
+
+    def test_login_returns_token_for_staff(self):
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"username": "coord", "password": "senha-forte-123"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("token", response.json())
+        self.assertEqual(AuthToken.objects.count(), 1)
+
+    def test_login_rejects_wrong_password(self):
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"username": "coord", "password": "errada"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(AuthToken.objects.count(), 0)
+
+    def test_login_rejects_non_staff_user(self):
+        get_user_model().objects.create_user(
+            username="morador",
+            password="senha-forte-123",
+            is_staff=False,
+        )
+
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps(
+                {"username": "morador", "password": "senha-forte-123"}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_protected_endpoint_requires_token(self):
+        response = self.client.post(
+            "/api/regions/",
+            data=json.dumps({"nome": "Norte"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(Region.objects.count(), 0)
+
+    def test_protected_endpoint_accepts_valid_token(self):
+        token = AuthToken.objects.create(user=self.user)
+
+        response = self.client.post(
+            "/api/regions/",
+            data=json.dumps({"nome": "Norte"}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Region.objects.count(), 1)
+
+    def test_logout_invalidates_token(self):
+        token = AuthToken.objects.create(user=self.user)
+        auth = {"HTTP_AUTHORIZATION": f"Token {token.key}"}
+
+        logout_response = self.client.post("/api/auth/logout/", **auth)
+
+        self.assertEqual(logout_response.status_code, 200)
+        self.assertEqual(AuthToken.objects.count(), 0)
+
+        blocked = self.client.post(
+            "/api/regions/",
+            data=json.dumps({"nome": "Norte"}),
+            content_type="application/json",
+            **auth,
+        )
+
+        self.assertEqual(blocked.status_code, 401)

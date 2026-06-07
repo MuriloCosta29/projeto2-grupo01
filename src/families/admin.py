@@ -2,12 +2,20 @@ from django.contrib import admin
 
 from .models import (
     AnonymousComplaint,
+    AuthToken,
     BasketAvailabilityNotification,
     DeliveryLog,
     Family,
     FieldAgent,
     Region,
 )
+
+
+@admin.register(AuthToken)
+class AuthTokenAdmin(admin.ModelAdmin):
+    list_display = ("user", "created_at")
+    search_fields = ("user__username",)
+    readonly_fields = ("key", "created_at")
 
 
 @admin.register(Region)

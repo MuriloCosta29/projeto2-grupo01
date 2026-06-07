@@ -1,9 +1,41 @@
+import secrets
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Max
 from django.urls import reverse
 from django.utils import timezone
+
+
+class AuthToken(models.Model):
+    """Token bearer simples para autenticar a SPA (sem DRF).
+
+    Gerado no login e enviado pelo front em 'Authorization: Token <key>'.
+    A `key` é uma string aleatória de 64 caracteres.
+    """
+
+    key = models.CharField(max_length=64, unique=True, db_index=True, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="auth_tokens",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "token de autenticação"
+        verbose_name_plural = "tokens de autenticação"
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = secrets.token_hex(32)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.key[:8]}…"
 
 
 class FamilyQuerySet(models.QuerySet):
