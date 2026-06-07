@@ -9,6 +9,6 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
-        value: ".onrender.com"
+        value: "False"
       - key: PYTHON_VERSION
         value: "3.13.5"
