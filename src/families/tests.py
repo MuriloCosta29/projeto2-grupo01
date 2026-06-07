@@ -400,6 +400,45 @@ class DashboardRegionsApiTests(TestCase):
             ],
         )
 
+    def test_regions_api_creates_region_for_admin_system(self):
+        response = self.client.post(
+            "/api/regions/",
+            data=json.dumps(
+                {
+                    "nome": "  recife  ",
+                    "codigo": "",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        region = Region.objects.get()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(region.nome, "Recife")
+        self.assertEqual(region.codigo, "recife")
+        self.assertTrue(region.ativo)
+        self.assertEqual(response.json()["nome"], "Recife")
+
+    def test_regions_api_rejects_duplicate_region(self):
+        Region.objects.create(nome="Recife", codigo="recife")
+
+        response = self.client.post(
+            "/api/regions/",
+            data=json.dumps(
+                {
+                    "nome": "recife",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["error"],
+            "Já existe uma região com esse nome ou código.",
+        )
+
 
 class BasketAvailabilityNotificationApiTests(TestCase):
     def test_processes_basket_availability_notifications_by_region(self):

@@ -1,4 +1,5 @@
 import type { RegionDeliveryImpact } from "../types";
+import { EmptyState } from "./ui/EmptyState";
 
 type RegionDeliveryDashboardProps = {
   regions: RegionDeliveryImpact[];
@@ -31,33 +32,43 @@ export function RegionDeliveryDashboard({
         </div>
       </div>
 
-      <label>
-        Região
-        <select
-          value={selectedRegion}
-          onChange={(event) => onSelectRegion(event.target.value)}
-        >
-          <option value="all">Todas as regiões</option>
-          {regions.map((region) => (
-            <option key={region.region} value={region.region}>
-              {region.region}
-            </option>
-          ))}
-        </select>
-      </label>
+      {regions.length === 0 ? (
+        <EmptyState
+          compact
+          title="Nenhuma região com dados"
+          description="Cadastre regiões e famílias para acompanhar o impacto territorial das entregas."
+        />
+      ) : (
+        <>
+          <label>
+            Região
+            <select
+              value={selectedRegion}
+              onChange={(event) => onSelectRegion(event.target.value)}
+            >
+              <option value="all">Todas as regiões</option>
+              {regions.map((region) => (
+                <option key={region.region} value={region.region}>
+                  {region.region}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <div className="region-metrics">
-        <article>
-          <span>Cestas entregues</span>
-          <strong>
-            {selectedRegionData?.total_deliveries ?? totalDeliveries}
-          </strong>
-        </article>
-        <article>
-          <span>Famílias na região</span>
-          <strong>{selectedRegionData?.families_count ?? totalFamilies}</strong>
-        </article>
-      </div>
+          <div className="region-metrics">
+            <article>
+              <span>Cestas entregues</span>
+              <strong>
+                {selectedRegionData?.total_deliveries ?? totalDeliveries}
+              </strong>
+            </article>
+            <article>
+              <span>Famílias na região</span>
+              <strong>{selectedRegionData?.families_count ?? totalFamilies}</strong>
+            </article>
+          </div>
+        </>
+      )}
     </section>
   );
 }

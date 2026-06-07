@@ -77,23 +77,61 @@ def dashboard_regions_api(request):
     )
 
 
+def serialize_region(region):
+    return {
+        "id": region.id,
+        "nome": region.nome,
+        "codigo": region.codigo,
+        "ativo": region.ativo,
+    }
+
+
+@csrf_exempt
 def regions_api(request):
-    if request.method != "GET":
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method == "GET":
+        data = [
+            serialize_region(region)
+            for region in Region.objects.filter(ativo=True)
+        ]
+
+        return add_cors_headers(JsonResponse(data, safe=False))
+
+    if request.method != "POST":
         return add_cors_headers(
             JsonResponse({"error": "Método não permitido."}, status=405)
         )
 
-    data = [
-        {
-            "id": region.id,
-            "nome": region.nome,
-            "codigo": region.codigo,
-            "ativo": region.ativo,
-        }
-        for region in Region.objects.filter(ativo=True)
-    ]
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
 
-    return add_cors_headers(JsonResponse(data, safe=False))
+    nome = str(payload.get("nome", "")).strip()
+    codigo = str(payload.get("codigo", "") or nome).strip()
+
+    if not nome:
+        return add_cors_headers(
+            JsonResponse({"error": "Nome da região é obrigatório."}, status=400)
+        )
+
+    try:
+        region = Region.objects.create(
+            nome=nome,
+            codigo=codigo,
+            ativo=payload.get("ativo", True),
+        )
+    except IntegrityError:
+        return add_cors_headers(
+            JsonResponse(
+                {"error": "Já existe uma região com esse nome ou código."},
+                status=400,
+            )
+        )
+
+    return add_cors_headers(JsonResponse(serialize_region(region), status=201))
 
 
 def serialize_field_agent(agent):

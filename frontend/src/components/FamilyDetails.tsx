@@ -1,4 +1,5 @@
 import type { Family, FieldAgent } from "../types";
+import { EmptyState } from "./ui/EmptyState";
 
 type FamilyDetailsProps = {
   family: Family | null;
@@ -25,7 +26,11 @@ export function FamilyDetails({
     return (
       <section className="panel">
         <h2>Histórico de entregas</h2>
-        <p className="muted">Selecione uma família para ver o histórico.</p>
+        <EmptyState
+          compact
+          title="Nenhuma família selecionada"
+          description="Selecione uma família na fila para consultar ou registrar entregas."
+        />
       </section>
     );
   }
@@ -73,7 +78,11 @@ export function FamilyDetails({
       {deliverySuccess && <p className="status success">{deliverySuccess}</p>}
 
       {(!family.deliveries || family.deliveries.length === 0) && (
-        <p className="muted">Nenhuma entrega registrada para esta família.</p>
+        <EmptyState
+          compact
+          title="Nenhuma entrega registrada"
+          description="Quando uma cesta for confirmada, o histórico aparecerá aqui."
+        />
       )}
 
       {family.deliveries && family.deliveries.length > 0 && (
