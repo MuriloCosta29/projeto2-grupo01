@@ -30,12 +30,36 @@ export function FamilyForm({
 
     const formData = new FormData(event.currentTarget);
     const regionId = Number(formData.get("region_id"));
+    const nomeResponsavel = String(formData.get("nome_responsavel") || "").trim();
+    const quantidadeMoradores = Number(formData.get("quantidade_moradores") || 0);
+    const codigoViela = String(formData.get("codigo_viela") || "").trim();
+
+    if (!nomeResponsavel) {
+      setError("Informe o nome do responsável.");
+      return;
+    }
+
+    if (!quantidadeMoradores || quantidadeMoradores < 1) {
+      setError("Informe a quantidade de moradores.");
+      return;
+    }
+
+    if (!codigoViela) {
+      setError("Informe o Código da Viela ou uma referência.");
+      return;
+    }
+
+    if (!regionId) {
+      setError("Selecione uma região.");
+      return;
+    }
+
     const payload = {
       ...(regionId ? { region_id: regionId } : {}),
-      nome_responsavel: String(formData.get("nome_responsavel") || ""),
+      nome_responsavel: nomeResponsavel,
       telefone: String(formData.get("telefone") || ""),
-      quantidade_moradores: Number(formData.get("quantidade_moradores") || 1),
-      codigo_viela: String(formData.get("codigo_viela") || ""),
+      quantidade_moradores: quantidadeMoradores,
+      codigo_viela: codigoViela,
       cep: String(formData.get("cep") || ""),
     };
 
@@ -86,25 +110,31 @@ export function FamilyForm({
         </p>
       )}
 
-      <form className="family-form" onSubmit={handleSubmit}>
+      <form className="family-form" onSubmit={handleSubmit} noValidate>
         <label>
           Nome do responsável
-          <input name="nome_responsavel" required />
+          <input name="nome_responsavel" placeholder="Ex: Ana Silva" required />
         </label>
 
         <label>
           Número de moradores
-          <input name="quantidade_moradores" type="number" min="1" required />
+          <input
+            name="quantidade_moradores"
+            type="number"
+            min="1"
+            placeholder="Ex: 4"
+            required
+          />
         </label>
 
         <label>
           WhatsApp / telefone
-          <input name="telefone" type="tel" />
+          <input name="telefone" type="tel" placeholder="Ex: 81999990000" />
         </label>
 
         <label>
           Código da Viela / Referência
-          <input name="codigo_viela" required />
+          <input name="codigo_viela" placeholder="Ex: Viela Azul" required />
         </label>
 
         <label>
@@ -121,7 +151,7 @@ export function FamilyForm({
 
         <label>
           CEP opcional
-          <input name="cep" />
+          <input name="cep" placeholder="Ex: 00000-000" />
         </label>
 
         <button type="submit" disabled={regions.length === 0}>

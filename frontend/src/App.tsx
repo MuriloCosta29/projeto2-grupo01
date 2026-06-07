@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, ReactNode } from "react";
+import type { ChangeEvent } from "react";
 import {
-  ArrowLeft,
   Bell,
   Box,
   Calendar,
@@ -15,9 +14,7 @@ import {
   PackageCheck,
   Plus,
   Search,
-  Shield,
   Upload,
-  User,
   UserRoundCog,
   Users,
 } from "lucide-react";
@@ -30,8 +27,20 @@ import { FamilyDetails } from "./components/FamilyDetails";
 import { FamilyForm } from "./components/FamilyForm";
 import { FieldAgentManagement } from "./components/FieldAgentManagement";
 import { RegionDeliveryDashboard } from "./components/RegionDeliveryDashboard";
+import { RegionManagement } from "./components/RegionManagement";
+import { AppTopbar } from "./components/ui/AppTopbar";
+import { EmptyState } from "./components/ui/EmptyState";
+import { MetricCard } from "./components/ui/MetricCard";
+import { EntryScreen } from "./screens/EntryScreen";
+import {
+  formatDate,
+  getWaitingDays,
+  getWaitingLabel,
+  isSameDate,
+} from "./utils/familyPriority";
 import {
   createFieldAgent,
+  createRegion,
   getBasketAvailabilityNotifications,
   getDashboardImpact,
   getFamilies,
@@ -44,6 +53,7 @@ import {
 } from "./services/api";
 import type {
   CreateFieldAgentPayload,
+  CreateRegionPayload,
   ProcessBasketAvailabilityPayload,
   UpdateFieldAgentPayload,
 } from "./services/api";
@@ -84,58 +94,6 @@ const supportWhatsappUrl = supportWhatsappNumber
   ? `https://wa.me/${supportWhatsappNumber}?text=${supportMessage}`
   : `https://wa.me/?text=${supportMessage}`;
 
-function formatDate(value: string) {
-  const date = value.includes("T")
-    ? new Date(value)
-    : new Date(`${value}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("pt-BR").format(date);
-}
-
-function getLatestDelivery(family: Family) {
-  return family.deliveries?.[0] ?? null;
-}
-
-function getWaitingDays(family: Family) {
-  const latestDelivery = getLatestDelivery(family);
-
-  if (!latestDelivery) {
-    return 999;
-  }
-
-  const deliveryDate = new Date(`${latestDelivery.delivery_date}T00:00:00`);
-  const today = new Date();
-  const millisecondsPerDay = 1000 * 60 * 60 * 24;
-
-  deliveryDate.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-
-  return Math.max(
-    0,
-    Math.floor((today.getTime() - deliveryDate.getTime()) / millisecondsPerDay),
-  );
-}
-
-function getWaitingLabel(family: Family) {
-  const latestDelivery = getLatestDelivery(family);
-
-  if (!latestDelivery) {
-    return "Sem entrega";
-  }
-
-  return `${getWaitingDays(family)}d`;
-}
-
-function isSameDate(value: string, date: Date) {
-  const formattedDate = date.toISOString().slice(0, 10);
-
-  return value === formattedDate;
-}
-
 function App() {
   const [view, setView] = useState<AppView>("entry");
   const [families, setFamilies] = useState<Family[]>([]);
@@ -161,6 +119,9 @@ function App() {
   const [dashboardError, setDashboardError] = useState("");
   const [regionDashboardError, setRegionDashboardError] = useState("");
   const [regionsError, setRegionsError] = useState("");
+  const [regionManagementError, setRegionManagementError] = useState("");
+  const [regionManagementSuccess, setRegionManagementSuccess] = useState("");
+  const [isSavingRegion, setIsSavingRegion] = useState(false);
   const [notificationsError, setNotificationsError] = useState("");
   const [notificationsSuccess, setNotificationsSuccess] = useState("");
   const [isProcessingNotifications, setIsProcessingNotifications] =
@@ -538,6 +499,27 @@ function App() {
     }
   }
 
+  async function handleCreateRegion(payload: CreateRegionPayload) {
+    setIsSavingRegion(true);
+    setRegionManagementError("");
+    setRegionManagementSuccess("");
+
+    try {
+      await createRegion(payload);
+      setRegionManagementSuccess("Região cadastrada com sucesso.");
+      await Promise.all([loadRegions(), loadRegionDeliveryImpact()]);
+    } catch (caughtError) {
+      if (caughtError instanceof Error) {
+        setRegionManagementError(caughtError.message);
+        return;
+      }
+
+      setRegionManagementError("Não foi possível cadastrar região.");
+    } finally {
+      setIsSavingRegion(false);
+    }
+  }
+
   async function handleUpdateFieldAgent(
     agentId: number,
     payload: UpdateFieldAgentPayload,
@@ -562,162 +544,38 @@ function App() {
     }
   }
 
-  function renderTopbar(title?: string, subtitle?: string) {
-    return (
-      <header className="pilar-topbar">
-        {view !== "entry" && (
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Voltar"
-            onClick={() => setView("entry")}
-          >
-            <ArrowLeft size={22} />
-          </button>
-        )}
-
-        <div className="brand-lockup">
-          {view === "entry" && (
-            <span className="brand-icon">
-              <Users size={28} />
-            </span>
-          )}
-          <div>
-            {view === "entry" ? (
-              <>
-                <strong>PILAR</strong>
-                <span>Sistema de distribuição de cestas básicas</span>
-              </>
-            ) : (
-              <>
-                <strong>{title}</strong>
-                {subtitle && <span>{subtitle}</span>}
-              </>
-            )}
-          </div>
-        </div>
-
-        {view !== "entry" && (
-          <button
-            type="button"
-            className="icon-button soft"
-            aria-label="Perfil"
-            onClick={() => setView("entry")}
-          >
-            <User size={22} />
-          </button>
-        )}
-      </header>
-    );
-  }
-
-  function renderEntry() {
-    return (
-      <main className="pilar-gradient entry-screen">
-        <section className="entry-content">
-          <div className="entry-brand">
-            <h1>PILAR</h1>
-            <p>Sistema de distribuição de cestas básicas</p>
-          </div>
-
-          <div className="role-grid" aria-label="Selecionar perfil">
-            <button
-              type="button"
-              className="role-card"
-              onClick={() => setView("president-home")}
-            >
-              <span className="tile-icon">
-                <Users size={34} />
-              </span>
-              <strong>Presidente de Rua</strong>
-              <small>Cadastrar e entregar cestas básicas</small>
-            </button>
-
-            <button
-              type="button"
-              className="role-card"
-              onClick={() => setView("resident-home")}
-            >
-              <span className="tile-icon">
-                <User size={34} />
-              </span>
-              <strong>Morador</strong>
-              <small>Monitorar seu histórico</small>
-            </button>
-
-            <button
-              type="button"
-              className="role-card"
-              onClick={() => setView("admin-home")}
-            >
-              <span className="tile-icon">
-                <Shield size={34} />
-              </span>
-              <strong>Administrador</strong>
-              <small>Gerenciar todo o sistema</small>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="complaint-entry"
-            onClick={() => setView("complaint")}
-          >
-            <FileWarning size={22} />
-            <span>Ouvidoria Anônima</span>
-          </button>
-          <p className="entry-note">Registre denúncias sem precisar fazer login</p>
-        </section>
-      </main>
-    );
-  }
-
-  function renderMetricCard(
-    label: string,
-    value: string | number,
-    icon: ReactNode,
-    tone: "blue" | "green" | "orange" | "cyan" = "blue",
-  ) {
-    const isLongTextValue = typeof value === "string" && value.length > 4;
-
-    return (
-      <article className="metric-card">
-        <span className={`metric-icon ${tone}`}>{icon}</span>
-        <strong className={isLongTextValue ? "compact-value" : ""}>
-          {value}
-        </strong>
-        <small>{label}</small>
-      </article>
-    );
-  }
-
   function renderPresidentHome() {
     const priorityFamilies = families.slice(0, 5);
 
     return (
       <main className="pilar-gradient app-screen">
-        {renderTopbar("PILAR", selectedAgent?.nome ?? "Presidente de Rua")}
+        <AppTopbar
+          title="PILAR"
+          subtitle={selectedAgent?.nome ?? "Presidente de Rua"}
+          onBack={() => setView("entry")}
+          onProfileClick={() => setView("entry")}
+        />
 
         <section className="screen-content">
           <div className="metric-grid">
-            {renderMetricCard(
-              "Famílias Cadastradas",
-              families.length,
-              <Users size={28} />,
-              "blue",
-            )}
-            {renderMetricCard(
-              "Entregas Hoje",
-              todaysDeliveriesCount,
-              <Box size={28} />,
-              "green",
-            )}
-            {renderMetricCard(
-              "Aguardando +30 dias",
-              familiesWaitingMoreThan30Days.length,
-              <Clock3 size={28} />,
-              "orange",
-            )}
+            <MetricCard
+              label="Famílias Cadastradas"
+              value={families.length}
+              icon={<Users size={28} />}
+              tone="blue"
+            />
+            <MetricCard
+              label="Entregas Hoje"
+              value={todaysDeliveriesCount}
+              icon={<Box size={28} />}
+              tone="green"
+            />
+            <MetricCard
+              label="Aguardando +30 dias"
+              value={familiesWaitingMoreThan30Days.length}
+              icon={<Clock3 size={28} />}
+              tone="orange"
+            />
           </div>
 
           <section className="quick-actions">
@@ -757,7 +615,20 @@ function App() {
             <h2>Famílias Prioritárias</h2>
             <div className="priority-list compact">
               {priorityFamilies.length === 0 && (
-                <p className="muted">Nenhuma família cadastrada ainda.</p>
+                <EmptyState
+                  compact
+                  title="Nenhuma família prioritária ainda"
+                  description="Cadastre a primeira família para iniciar a fila de prioridade."
+                  action={
+                    <button
+                      type="button"
+                      className="secondary-action"
+                      onClick={() => setView("family-create")}
+                    >
+                      Cadastrar Família
+                    </button>
+                  }
+                />
               )}
               {priorityFamilies.map((family) => (
                 <button
@@ -807,7 +678,12 @@ function App() {
   function renderFamilyCreate() {
     return (
       <main className="pilar-gradient app-screen">
-        {renderTopbar("Cadastrar Nova Família", "Preencha os dados abaixo")}
+        <AppTopbar
+          title="Cadastrar Nova Família"
+          subtitle="Preencha os dados abaixo"
+          onBack={() => setView("entry")}
+          onProfileClick={() => setView("entry")}
+        />
 
         <section className="screen-content narrow">
           <FamilyForm
@@ -857,7 +733,12 @@ function App() {
   function renderFamilyList() {
     return (
       <main className="pilar-gradient app-screen">
-        {renderTopbar("Lista de Famílias", "Ordenadas por tempo de espera")}
+        <AppTopbar
+          title="Lista de Famílias"
+          subtitle="Ordenadas por tempo de espera"
+          onBack={() => setView("entry")}
+          onProfileClick={() => setView("entry")}
+        />
 
         <section className="screen-content">
           <section className="filter-card">
@@ -924,9 +805,19 @@ function App() {
 
           <section className="figma-family-list">
             {filteredFamilies.length === 0 && !loading && (
-              <article className="empty-state">
-                Nenhuma família encontrada com os filtros atuais.
-              </article>
+              <EmptyState
+                title="Nenhuma família encontrada"
+                description="Revise os filtros ou cadastre uma nova família para alimentar a fila."
+                action={
+                  <button
+                    type="button"
+                    className="secondary-action"
+                    onClick={() => setView("family-create")}
+                  >
+                    Cadastrar Família
+                  </button>
+                }
+              />
             )}
 
             {filteredFamilies.map((family) => (
@@ -989,28 +880,33 @@ function App() {
   function renderResidentHome() {
     return (
       <main className="pilar-gradient app-screen">
-        {renderTopbar("PILAR", residentFamily?.nome_responsavel ?? "Morador")}
+        <AppTopbar
+          title="PILAR"
+          subtitle={residentFamily?.nome_responsavel ?? "Morador"}
+          onBack={() => setView("entry")}
+          onProfileClick={() => setView("entry")}
+        />
 
         <section className="screen-content">
           <div className="metric-grid">
-            {renderMetricCard(
-              "Cestas Recebidas",
-              residentDeliveries.length,
-              <PackageCheck size={28} />,
-              "blue",
-            )}
-            {renderMetricCard(
-              "Dias desde última cesta",
-              residentFamily ? getWaitingLabel(residentFamily) : "-",
-              <Calendar size={28} />,
-              "orange",
-            )}
-            {renderMetricCard(
-              "Notificações Novas",
-              readyNotifications.length,
-              <Bell size={28} />,
-              "cyan",
-            )}
+            <MetricCard
+              label="Cestas Recebidas"
+              value={residentDeliveries.length}
+              icon={<PackageCheck size={28} />}
+              tone="blue"
+            />
+            <MetricCard
+              label="Dias desde última cesta"
+              value={residentFamily ? getWaitingLabel(residentFamily) : "-"}
+              icon={<Calendar size={28} />}
+              tone="orange"
+            />
+            <MetricCard
+              label="Notificações Novas"
+              value={readyNotifications.length}
+              icon={<Bell size={28} />}
+              tone="cyan"
+            />
           </div>
 
           <section className="resident-section">
@@ -1020,9 +916,10 @@ function App() {
             </div>
 
             {readyNotifications.length === 0 && (
-              <article className="wide-card">
-                Nenhuma notificação de disponibilidade no momento.
-              </article>
+              <EmptyState
+                title="Nenhuma notificação disponível"
+                description="Quando houver cesta liberada para retirada, o aviso aparecerá aqui."
+              />
             )}
 
             {readyNotifications.slice(0, 2).map((notification) => (
@@ -1053,9 +950,10 @@ function App() {
             <h2>Histórico de Entregas</h2>
             <div className="delivery-history">
               {residentDeliveries.length === 0 && (
-                <article className="wide-card">
-                  Nenhuma entrega registrada para este morador.
-                </article>
+                <EmptyState
+                  title="Nenhuma entrega registrada"
+                  description="O histórico aparecerá aqui após a primeira entrega confirmada."
+                />
               )}
               {residentDeliveries.map((delivery) => (
                 <article key={delivery.id} className="wide-card history-card">
@@ -1091,34 +989,47 @@ function App() {
   function renderAdminHome() {
     return (
       <main className="pilar-gradient app-screen">
-        {renderTopbar("Administrador", "Gestão e governança")}
+        <AppTopbar
+          title="Administrador"
+          subtitle="Gestão e governança"
+          onBack={() => setView("entry")}
+          onProfileClick={() => setView("entry")}
+        />
 
         <section className="screen-content admin-grid">
           <section className="admin-summary">
-            {renderMetricCard(
-              "Cestas Entregues",
-              dashboardImpact?.total_deliveries ?? 0,
-              <PackageCheck size={28} />,
-              "green",
-            )}
-            {renderMetricCard(
-              "Presidentes Ativos",
-              fieldAgents.filter((agent) => agent.ativo).length,
-              <UserRoundCog size={28} />,
-              "blue",
-            )}
-            {renderMetricCard(
-              "Regiões Ativas",
-              regions.filter((region) => region.ativo).length,
-              <MapPin size={28} />,
-              "cyan",
-            )}
+            <MetricCard
+              label="Cestas Entregues"
+              value={dashboardImpact?.total_deliveries ?? 0}
+              icon={<PackageCheck size={28} />}
+              tone="green"
+            />
+            <MetricCard
+              label="Presidentes Ativos"
+              value={fieldAgents.filter((agent) => agent.ativo).length}
+              icon={<UserRoundCog size={28} />}
+              tone="blue"
+            />
+            <MetricCard
+              label="Regiões Ativas"
+              value={regions.filter((region) => region.ativo).length}
+              icon={<MapPin size={28} />}
+              tone="cyan"
+            />
           </section>
 
           <RegionDeliveryDashboard
             regions={regionDeliveryImpact}
             selectedRegion={selectedRegion}
             onSelectRegion={setSelectedRegion}
+          />
+
+          <RegionManagement
+            regions={regions}
+            isSaving={isSavingRegion}
+            error={regionManagementError}
+            success={regionManagementSuccess}
+            onCreateRegion={handleCreateRegion}
           />
 
           <AgentMonitoring
@@ -1154,7 +1065,12 @@ function App() {
   function renderComplaint() {
     return (
       <main className="pilar-gradient app-screen">
-        {renderTopbar("Ouvidoria Anônima", "Registro protegido")}
+        <AppTopbar
+          title="Ouvidoria Anônima"
+          subtitle="Registro protegido"
+          onBack={() => setView("entry")}
+          onProfileClick={() => setView("entry")}
+        />
 
         <section className="screen-content narrow">
           <AnonymousComplaintForm regions={regions} />
@@ -1185,7 +1101,14 @@ function App() {
         </div>
       )}
 
-      {view === "entry" && renderEntry()}
+      {view === "entry" && (
+        <EntryScreen
+          onSelectPresident={() => setView("president-home")}
+          onSelectResident={() => setView("resident-home")}
+          onSelectAdmin={() => setView("admin-home")}
+          onSelectComplaint={() => setView("complaint")}
+        />
+      )}
       {view === "president-home" && renderPresidentHome()}
       {view === "family-create" && renderFamilyCreate()}
       {view === "family-list" && renderFamilyList()}

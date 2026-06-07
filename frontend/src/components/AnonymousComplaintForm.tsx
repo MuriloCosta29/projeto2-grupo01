@@ -41,15 +41,22 @@ export function AnonymousComplaintForm({ regions }: AnonymousComplaintFormProps)
     const form = event.currentTarget;
     const formData = new FormData(form);
     const regionId = Number(formData.get("region_id"));
+    const description = String(formData.get("description") || "").trim();
     const payload: CreateAnonymousComplaintPayload = {
       ...(regionId ? { region_id: regionId } : {}),
       codigo_viela: String(formData.get("codigo_viela") || ""),
       category: String(formData.get("category") || "other"),
-      description: String(formData.get("description") || ""),
+      description,
     };
 
     setError("");
     setProtocol("");
+
+    if (description.length < 10) {
+      setError("Descreva a denúncia com pelo menos 10 caracteres.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -88,7 +95,7 @@ export function AnonymousComplaintForm({ regions }: AnonymousComplaintFormProps)
       )}
       {error && <p className="status error">{error}</p>}
 
-      <form className="complaint-form" onSubmit={handleSubmit}>
+      <form className="complaint-form" onSubmit={handleSubmit} noValidate>
         <label>
           Categoria
           <select name="category" required>
@@ -114,7 +121,7 @@ export function AnonymousComplaintForm({ regions }: AnonymousComplaintFormProps)
 
         <label>
           Código da Viela / Referência
-          <input name="codigo_viela" />
+          <input name="codigo_viela" placeholder="Ex: Viela Azul" />
         </label>
 
         <label className="complaint-description">
@@ -123,6 +130,7 @@ export function AnonymousComplaintForm({ regions }: AnonymousComplaintFormProps)
             name="description"
             minLength={10}
             rows={4}
+            placeholder="Descreva o que aconteceu, sem informar sua identidade."
             required
           />
         </label>
