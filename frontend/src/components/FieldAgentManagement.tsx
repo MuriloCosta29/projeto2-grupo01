@@ -34,7 +34,7 @@ export function FieldAgentManagement({
 }: FieldAgentManagementProps) {
   const [editNome, setEditNome] = useState("");
   const [editTelefone, setEditTelefone] = useState("");
-  const [editCodigoArea, setEditCodigoArea] = useState("");
+  const [editAreaAtuacao, setEditAreaAtuacao] = useState("");
   const [editRegionId, setEditRegionId] = useState("");
   const [editAtivo, setEditAtivo] = useState(true);
   const [createError, setCreateError] = useState("");
@@ -43,7 +43,7 @@ export function FieldAgentManagement({
   useEffect(() => {
     setEditNome(selectedAgent?.nome ?? "");
     setEditTelefone(selectedAgent?.telefone ?? "");
-    setEditCodigoArea(selectedAgent?.codigo_area ?? "");
+    setEditAreaAtuacao(selectedAgent?.area_atuacao ?? "");
     setEditRegionId(selectedAgent?.region?.id ? String(selectedAgent.region.id) : "");
     setEditAtivo(selectedAgent?.ativo ?? true);
     setEditError("");
@@ -68,7 +68,7 @@ export function FieldAgentManagement({
       ...(regionId ? { region_id: regionId } : {}),
       nome,
       telefone: String(formData.get("telefone") || ""),
-      codigo_area: String(formData.get("codigo_area") || ""),
+      area_atuacao: String(formData.get("area_atuacao") || ""),
       ativo: true,
     });
 
@@ -97,7 +97,7 @@ export function FieldAgentManagement({
       region_id: regionId || null,
       nome,
       telefone: editTelefone,
-      codigo_area: editCodigoArea,
+      area_atuacao: editAreaAtuacao,
       ativo: editAtivo,
     });
   }
@@ -143,7 +143,7 @@ export function FieldAgentManagement({
 
           <label>
             Área de atuação
-            <input name="codigo_area" placeholder="Ex: Viela Azul" />
+            <input name="area_atuacao" placeholder="Ex: Viela Azul" />
           </label>
 
           <label className="agent-region-field">
@@ -195,7 +195,7 @@ export function FieldAgentManagement({
                   <strong>{agent.nome}</strong>
                   <span>
                     {agent.region?.nome ||
-                      agent.codigo_area ||
+                      agent.area_atuacao ||
                       "Área não informada"}
                   </span>
                   <small>{agent.ativo ? "Ativo" : "Inativo"}</small>
@@ -253,9 +253,9 @@ export function FieldAgentManagement({
                 <label>
                   Área de atuação
                   <input
-                    value={editCodigoArea}
+                    value={editAreaAtuacao}
                     placeholder="Ex: Viela Azul"
-                    onChange={(event) => setEditCodigoArea(event.target.value)}
+                    onChange={(event) => setEditAreaAtuacao(event.target.value)}
                   />
                 </label>
 

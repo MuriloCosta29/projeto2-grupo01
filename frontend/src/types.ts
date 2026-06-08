@@ -8,7 +8,6 @@ export type DeliveryLog = {
 export type Region = {
   id: number;
   nome: string;
-  codigo: string;
   ativo: boolean;
 };
 
@@ -73,7 +72,7 @@ export type FieldAgent = {
   region: Region | null;
   nome: string;
   telefone: string;
-  codigo_area: string;
+  area_atuacao: string;
   ativo: boolean;
   assigned_families_count: number;
   attended_families_count: number;

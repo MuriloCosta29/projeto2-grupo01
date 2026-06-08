@@ -20,16 +20,16 @@ class AuthTokenAdmin(admin.ModelAdmin):
 
 @admin.register(Region)
 class RegionAdmin(admin.ModelAdmin):
-    list_display = ("nome", "codigo", "ativo", "criado_em")
-    search_fields = ("nome", "codigo")
+    list_display = ("nome", "ativo", "criado_em")
+    search_fields = ("nome",)
     list_filter = ("ativo",)
     readonly_fields = ("criado_em",)
 
 
 @admin.register(FieldAgent)
 class FieldAgentAdmin(admin.ModelAdmin):
-    list_display = ("nome", "telefone", "codigo_area", "region", "ativo", "criado_em")
-    search_fields = ("nome", "telefone", "codigo_area", "region__nome")
+    list_display = ("nome", "telefone", "area_atuacao", "region", "ativo", "criado_em")
+    search_fields = ("nome", "telefone", "area_atuacao", "region__nome")
     list_filter = ("ativo", "region")
     readonly_fields = ("criado_em",)
 

@@ -50,7 +50,10 @@ class FamilyQuerySet(models.QuerySet):
 
 class Region(models.Model):
     nome = models.CharField(max_length=120, unique=True)
-    codigo = models.CharField(max_length=40, unique=True)
+    # DEPRECATED: campo redundante (espelho do nome). Nada mais lê ou escreve
+    # nele. Mantido nullable nesta etapa (expand) só para o drop acontecer num
+    # segundo deploy (contract), sem janela de código antigo x schema novo.
+    codigo = models.CharField(max_length=40, null=True, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
@@ -64,7 +67,6 @@ class Region(models.Model):
 
     def save(self, *args, **kwargs):
         self.nome = " ".join(self.nome.strip().split()).title()
-        self.codigo = " ".join(self.codigo.strip().split()).lower()
 
         super().save(*args, **kwargs)
 
@@ -79,7 +81,7 @@ class FieldAgent(models.Model):
     )
     nome = models.CharField(max_length=200)
     telefone = models.CharField(max_length=30, blank=True)
-    codigo_area = models.CharField(max_length=120, blank=True)
+    area_atuacao = models.CharField(max_length=120, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
@@ -94,7 +96,7 @@ class FieldAgent(models.Model):
     def save(self, *args, **kwargs):
         self.nome = " ".join(self.nome.strip().split()).title()
         self.telefone = self.telefone.strip()
-        self.codigo_area = " ".join(self.codigo_area.strip().split())
+        self.area_atuacao = " ".join(self.area_atuacao.strip().split())
 
         super().save(*args, **kwargs)
 

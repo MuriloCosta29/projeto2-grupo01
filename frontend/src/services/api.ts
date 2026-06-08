@@ -184,7 +184,7 @@ export type CreateFieldAgentPayload = {
   region_id?: number;
   nome: string;
   telefone: string;
-  codigo_area: string;
+  area_atuacao: string;
   ativo?: boolean;
 };
 
