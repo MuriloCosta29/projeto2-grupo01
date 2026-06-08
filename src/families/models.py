@@ -50,10 +50,6 @@ class FamilyQuerySet(models.QuerySet):
 
 class Region(models.Model):
     nome = models.CharField(max_length=120, unique=True)
-    # DEPRECATED: campo redundante (espelho do nome). Nada mais lê ou escreve
-    # nele. Mantido nullable nesta etapa (expand) só para o drop acontecer num
-    # segundo deploy (contract), sem janela de código antigo x schema novo.
-    codigo = models.CharField(max_length=40, null=True, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
