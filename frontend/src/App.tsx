@@ -1,46 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import {
-  Bell,
-  Box,
-  Calendar,
-  CheckCircle2,
-  Clock3,
-  Download,
-  FileWarning,
-  ListChecks,
-  LogOut,
-  MapPin,
-  MessageCircle,
-  PackageCheck,
-  Plus,
-  Search,
-  Upload,
-  UserRoundCog,
-  Users,
-} from "lucide-react";
 
 import "./App.css";
-import { AgentMonitoring } from "./components/AgentMonitoring";
-import { AnonymousComplaintForm } from "./components/AnonymousComplaintForm";
-import { BasketAvailabilityNotifications } from "./components/BasketAvailabilityNotifications";
-import { FamilyDetails } from "./components/FamilyDetails";
-import { FamilyForm } from "./components/FamilyForm";
-import { FieldAgentManagement } from "./components/FieldAgentManagement";
-import { RegionDeliveryDashboard } from "./components/RegionDeliveryDashboard";
-import { RegionManagement } from "./components/RegionManagement";
-import { AppTopbar } from "./components/ui/AppTopbar";
-import { EmptyState } from "./components/ui/EmptyState";
-import { MetricCard } from "./components/ui/MetricCard";
 import { AdminLogin } from "./screens/AdminLogin";
+import { AdminHomeScreen } from "./screens/AdminHomeScreen";
+import { ComplaintScreen } from "./screens/ComplaintScreen";
 import { EntryScreen } from "./screens/EntryScreen";
+import { FamilyCreateScreen } from "./screens/FamilyCreateScreen";
+import { FamilyListScreen } from "./screens/FamilyListScreen";
+import type {
+  OperationalStatusFilter,
+  WaitFilter,
+} from "./screens/FamilyListScreen";
+import { PresidentHomeScreen } from "./screens/PresidentHomeScreen";
+import { ResidentHomeScreen } from "./screens/ResidentHomeScreen";
 import { ResidentLookup } from "./screens/ResidentLookup";
-import {
-  formatDate,
-  getWaitingDays,
-  getWaitingLabel,
-  isSameDate,
-} from "./utils/familyPriority";
+import { getWaitingDays, isSameDate } from "./utils/familyPriority";
 import {
   createFieldAgent,
   createRegion,
@@ -88,9 +63,6 @@ type AppView =
   | "admin-login"
   | "admin-home"
   | "complaint";
-
-type OperationalStatusFilter = "all" | "pending" | "received";
-type WaitFilter = "all" | "30" | "60" | "90";
 
 const supportWhatsappNumber = import.meta.env.VITE_SUPPORT_WHATSAPP_NUMBER ?? "";
 
@@ -604,552 +576,6 @@ function App() {
     }
   }
 
-  function renderPresidentHome() {
-    const priorityFamilies = families.slice(0, 5);
-
-    return (
-      <main className="pilar-gradient app-screen">
-        <AppTopbar
-          title="PILAR"
-          subtitle={selectedAgent?.nome ?? "Presidente de Rua"}
-          onBack={() => setView("entry")}
-          onProfileClick={() => setView("entry")}
-        />
-
-        <section className="screen-content">
-          <div className="metric-grid">
-            <MetricCard
-              label="Famílias Cadastradas"
-              value={families.length}
-              icon={<Users size={28} />}
-              tone="blue"
-            />
-            <MetricCard
-              label="Entregas Hoje"
-              value={todaysDeliveriesCount}
-              icon={<Box size={28} />}
-              tone="green"
-            />
-            <MetricCard
-              label="Aguardando +30 dias"
-              value={familiesWaitingMoreThan30Days.length}
-              icon={<Clock3 size={28} />}
-              tone="orange"
-            />
-          </div>
-
-          <section className="quick-actions">
-            <h2>Ações Rápidas</h2>
-            <div className="action-grid">
-              <button
-                type="button"
-                className="action-card primary"
-                onClick={() => setView("family-create")}
-              >
-                <span>
-                  <Plus size={32} />
-                </span>
-                <div>
-                  <strong>Cadastrar Família</strong>
-                  <small>Adicionar nova família ao sistema</small>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="action-card"
-                onClick={() => setView("family-list")}
-              >
-                <span>
-                  <ListChecks size={32} />
-                </span>
-                <div>
-                  <strong>Ver Famílias</strong>
-                  <small>Lista completa ordenada por espera</small>
-                </div>
-              </button>
-            </div>
-          </section>
-
-          <section className="priority-panel">
-            <h2>Famílias Prioritárias</h2>
-            <div className="priority-list compact">
-              {priorityFamilies.length === 0 && (
-                <EmptyState
-                  compact
-                  title="Nenhuma família prioritária ainda"
-                  description="Cadastre a primeira família para iniciar a fila de prioridade."
-                  action={
-                    <button
-                      type="button"
-                      className="secondary-action"
-                      onClick={() => setView("family-create")}
-                    >
-                      Cadastrar Família
-                    </button>
-                  }
-                />
-              )}
-              {priorityFamilies.map((family) => (
-                <button
-                  key={family.id}
-                  type="button"
-                  className="priority-row"
-                  onClick={() => {
-                    setSelectedFamily(family);
-                    setView("family-list");
-                  }}
-                >
-                  <div>
-                    <strong>{family.nome_responsavel}</strong>
-                    <small>
-                      {family.region?.nome ?? family.codigo_viela} •{" "}
-                      {family.quantidade_moradores} pessoas
-                    </small>
-                  </div>
-                  <span
-                    className={
-                      getWaitingDays(family) >= 30
-                        ? "waiting-badge alert"
-                        : "waiting-badge"
-                    }
-                  >
-                    {getWaitingLabel(family)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <a
-            className="floating-support"
-            href={supportWhatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Ajuda via WhatsApp"
-          >
-            <MessageCircle size={30} />
-          </a>
-        </section>
-      </main>
-    );
-  }
-
-  function renderFamilyCreate() {
-    return (
-      <main className="pilar-gradient app-screen">
-        <AppTopbar
-          title="Cadastrar Nova Família"
-          subtitle="Preencha os dados abaixo"
-          onBack={() => setView("entry")}
-          onProfileClick={() => setView("entry")}
-        />
-
-        <section className="screen-content narrow">
-          <FamilyForm
-            regions={regions}
-            onFamilyCreated={async () => {
-              await loadFamilies();
-              setView("family-list");
-            }}
-            onOfflineFamilySaved={refreshPendingOfflineFamiliesCount}
-          />
-
-          <section className="offline-card">
-            <div>
-              <CheckCircle2 size={18} />
-              <span>
-                {pendingOfflineFamiliesCount > 0
-                  ? `${pendingOfflineFamiliesCount} cadastro(s) offline aguardando sincronização.`
-                  : "Dados salvos automaticamente no dispositivo em modo offline."}
-              </span>
-            </div>
-            <div className="backup-actions">
-              <button
-                type="button"
-                onClick={handleDownloadOfflineBackup}
-                disabled={pendingOfflineFamiliesCount === 0}
-              >
-                <Download size={18} />
-                Backup
-              </button>
-              <label>
-                <Upload size={18} />
-                Restaurar
-                <input
-                  type="file"
-                  accept="application/json"
-                  onChange={handleRestoreOfflineBackup}
-                />
-              </label>
-            </div>
-            {offlineSyncMessage && <p>{offlineSyncMessage}</p>}
-          </section>
-        </section>
-      </main>
-    );
-  }
-
-  function renderFamilyList() {
-    return (
-      <main className="pilar-gradient app-screen">
-        <AppTopbar
-          title="Lista de Famílias"
-          subtitle="Ordenadas por tempo de espera"
-          onBack={() => setView("entry")}
-          onProfileClick={() => setView("entry")}
-        />
-
-        <section className="screen-content">
-          <section className="filter-card">
-            <label className="search-field">
-              <Search size={22} />
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Buscar por nome, bairro, região ou CEP..."
-              />
-            </label>
-
-            <div className="filter-group">
-              <span>Tempo de espera</span>
-              <div>
-                {(["all", "30", "60", "90"] as WaitFilter[]).map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    className={waitFilter === filter ? "is-active" : ""}
-                    onClick={() => setWaitFilter(filter)}
-                  >
-                    {filter === "all" ? "Todas" : `+${filter} dias`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <span>Status de recebimento</span>
-              <div>
-                <button
-                  type="button"
-                  className={statusFilter === "all" ? "is-active cyan" : ""}
-                  onClick={() => setStatusFilter("all")}
-                >
-                  Todas
-                </button>
-                <button
-                  type="button"
-                  className={statusFilter === "received" ? "is-active cyan" : ""}
-                  onClick={() => setStatusFilter("received")}
-                >
-                  Já Receberam
-                </button>
-                <button
-                  type="button"
-                  className={statusFilter === "pending" ? "is-active cyan" : ""}
-                  onClick={() => setStatusFilter("pending")}
-                >
-                  Precisam Receber
-                </button>
-              </div>
-            </div>
-
-            <p>
-              <Users size={18} /> {filteredFamilies.length} de {families.length}{" "}
-              famílias
-            </p>
-          </section>
-
-          {loading && <p className="status">Carregando famílias...</p>}
-          {error && <p className="status error">{error}</p>}
-
-          <section className="figma-family-list">
-            {filteredFamilies.length === 0 && !loading && (
-              <EmptyState
-                title="Nenhuma família encontrada"
-                description="Revise os filtros ou cadastre uma nova família para alimentar a fila."
-                action={
-                  <button
-                    type="button"
-                    className="secondary-action"
-                    onClick={() => setView("family-create")}
-                  >
-                    Cadastrar Família
-                  </button>
-                }
-              />
-            )}
-
-            {filteredFamilies.map((family) => (
-              <button
-                key={family.id}
-                type="button"
-                className={
-                  selectedFamily?.id === family.id
-                    ? "figma-family-card selected"
-                    : "figma-family-card"
-                }
-                onClick={() => setSelectedFamily(family)}
-              >
-                <span className="family-icon">
-                  <Users size={30} />
-                </span>
-                <div>
-                  <strong>{family.nome_responsavel}</strong>
-                  <small>
-                    <MapPin size={17} />
-                    {family.codigo_viela}
-                    {family.region?.nome ? ` - ${family.region.nome}` : ""}
-                  </small>
-                  <small>
-                    <Users size={17} />
-                    {family.quantidade_moradores} pessoas
-                  </small>
-                  {family.observacoes && <p>{family.observacoes}</p>}
-                </div>
-                <span
-                  className={
-                    getWaitingDays(family) >= 30
-                      ? "days-card priority"
-                      : "days-card"
-                  }
-                >
-                  <Calendar size={22} />
-                  <strong>{getWaitingLabel(family)}</strong>
-                  {getWaitingDays(family) >= 30 && <small>Prioritária</small>}
-                </span>
-              </button>
-            ))}
-          </section>
-
-          <FamilyDetails
-            family={selectedFamily}
-            agents={fieldAgents}
-            selectedDeliveryAgentId={selectedDeliveryAgentId}
-            isRegisteringDelivery={isRegisteringDelivery}
-            deliveryError={deliveryError}
-            deliverySuccess={deliverySuccess}
-            onSelectDeliveryAgent={setSelectedDeliveryAgentId}
-            onRegisterDelivery={handleRegisterDelivery}
-          />
-        </section>
-      </main>
-    );
-  }
-
-  function renderResidentHome() {
-    return (
-      <main className="pilar-gradient app-screen">
-        <AppTopbar
-          title="PILAR"
-          subtitle={residentFamily?.nome_responsavel ?? "Morador"}
-          onBack={() => setView("entry")}
-          onProfileClick={() => setView("entry")}
-        />
-
-        <section className="screen-content">
-          <div className="metric-grid">
-            <MetricCard
-              label="Cestas Recebidas"
-              value={residentDeliveries.length}
-              icon={<PackageCheck size={28} />}
-              tone="blue"
-            />
-            <MetricCard
-              label="Dias desde última cesta"
-              value={residentFamily ? getWaitingLabel(residentFamily) : "-"}
-              icon={<Calendar size={28} />}
-              tone="orange"
-            />
-            <MetricCard
-              label="Notificações Novas"
-              value={readyNotifications.length}
-              icon={<Bell size={28} />}
-              tone="cyan"
-            />
-          </div>
-
-          <section className="resident-section">
-            <div className="section-heading">
-              <h2>Notificações</h2>
-              <button type="button">Marcar todas como lidas</button>
-            </div>
-
-            {readyNotifications.length === 0 && (
-              <EmptyState
-                title="Nenhuma notificação disponível"
-                description="Quando houver cesta liberada para retirada, o aviso aparecerá aqui."
-              />
-            )}
-
-            {readyNotifications.slice(0, 2).map((notification) => (
-              <article key={notification.id} className="wide-card notification">
-                <span className="notice-icon">
-                  <Box size={28} />
-                </span>
-                <div>
-                  <strong>Sua cesta básica está disponível para retirada!</strong>
-                  <small>Data: {formatDate(notification.scheduled_for)}</small>
-                  <small>Local: {notification.pickup_location}</small>
-                  {notification.notification_url && (
-                    <a
-                      href={notification.notification_url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Abrir WhatsApp
-                    </a>
-                  )}
-                </div>
-                <em>Nova</em>
-              </article>
-            ))}
-          </section>
-
-          <section className="resident-section">
-            <h2>Histórico de Entregas</h2>
-            <div className="delivery-history">
-              {residentDeliveries.length === 0 && (
-                <EmptyState
-                  title="Nenhuma entrega registrada"
-                  description="O histórico aparecerá aqui após a primeira entrega confirmada."
-                />
-              )}
-              {residentDeliveries.map((delivery) => (
-                <article key={delivery.id} className="wide-card history-card">
-                  <span className="notice-icon green">
-                    <Box size={28} />
-                  </span>
-                  <div>
-                    <strong>Cesta Básica Recebida</strong>
-                    <small>{delivery.notes || "Entrega registrada."}</small>
-                  </div>
-                  <time>{formatDate(delivery.delivery_date)}</time>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <button
-            type="button"
-            className="complaint-strip"
-            onClick={() => setView("complaint")}
-          >
-            <FileWarning size={26} />
-            <span>
-              <strong>Ouvidoria Anônima</strong>
-              <small>Registre denúncias ou sugestões de forma anônima</small>
-            </span>
-          </button>
-        </section>
-      </main>
-    );
-  }
-
-  function renderAdminHome() {
-    return (
-      <main className="pilar-gradient app-screen">
-        <AppTopbar
-          title="Administrador"
-          subtitle="Gestão e governança"
-          onBack={() => setView("entry")}
-          onProfileClick={handleAdminLogout}
-        />
-
-        <section className="screen-content admin-grid">
-          <div className="admin-logout-row">
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={handleAdminLogout}
-            >
-              <LogOut size={18} />
-              Sair
-            </button>
-          </div>
-
-          <section className="admin-summary">
-            <MetricCard
-              label="Cestas Entregues"
-              value={dashboardImpact?.total_deliveries ?? 0}
-              icon={<PackageCheck size={28} />}
-              tone="green"
-            />
-            <MetricCard
-              label="Presidentes Ativos"
-              value={fieldAgents.filter((agent) => agent.ativo).length}
-              icon={<UserRoundCog size={28} />}
-              tone="blue"
-            />
-            <MetricCard
-              label="Regiões Ativas"
-              value={regions.filter((region) => region.ativo).length}
-              icon={<MapPin size={28} />}
-              tone="cyan"
-            />
-          </section>
-
-          <RegionDeliveryDashboard
-            regions={regionDeliveryImpact}
-            selectedRegion={selectedRegion}
-            onSelectRegion={setSelectedRegion}
-          />
-
-          <RegionManagement
-            regions={regions}
-            isSaving={isSavingRegion}
-            error={regionManagementError}
-            success={regionManagementSuccess}
-            onCreateRegion={handleCreateRegion}
-          />
-
-          <AgentMonitoring
-            agents={fieldAgents}
-            selectedAgent={selectedAgent}
-            onSelectAgent={handleSelectAgent}
-          />
-
-          <FieldAgentManagement
-            agents={fieldAgents}
-            regions={regions}
-            selectedAgent={selectedAgent}
-            isSaving={isSavingAgent}
-            error={agentManagementError}
-            success={agentManagementSuccess}
-            onCreateAgent={handleCreateFieldAgent}
-            onUpdateAgent={handleUpdateFieldAgent}
-          />
-
-          <BasketAvailabilityNotifications
-            regions={regions}
-            notifications={basketAvailabilityNotifications}
-            isProcessing={isProcessingNotifications}
-            error={notificationsError}
-            success={notificationsSuccess}
-            onProcess={handleProcessBasketAvailabilityNotifications}
-          />
-        </section>
-      </main>
-    );
-  }
-
-  function renderComplaint() {
-    return (
-      <main className="pilar-gradient app-screen">
-        <AppTopbar
-          title="Ouvidoria Anônima"
-          subtitle="Registro protegido"
-          onBack={() => setView("entry")}
-          onProfileClick={() => setView("entry")}
-        />
-
-        <section className="screen-content narrow">
-          <AnonymousComplaintForm regions={regions} />
-        </section>
-      </main>
-    );
-  }
-
   return (
     <>
       {(agentsError ||
@@ -1189,10 +615,73 @@ function App() {
           }}
         />
       )}
-      {view === "president-home" && renderPresidentHome()}
-      {view === "family-create" && renderFamilyCreate()}
-      {view === "family-list" && renderFamilyList()}
-      {view === "resident-home" && renderResidentHome()}
+      {view === "president-home" && (
+        <PresidentHomeScreen
+          families={families}
+          todaysDeliveriesCount={todaysDeliveriesCount}
+          familiesWaitingMoreThan30DaysCount={
+            familiesWaitingMoreThan30Days.length
+          }
+          agentName={selectedAgent?.nome}
+          supportWhatsappUrl={supportWhatsappUrl}
+          onBack={() => setView("entry")}
+          onCreateFamily={() => setView("family-create")}
+          onViewFamilies={() => setView("family-list")}
+          onSelectFamily={(family) => {
+            setSelectedFamily(family);
+            setView("family-list");
+          }}
+        />
+      )}
+      {view === "family-create" && (
+        <FamilyCreateScreen
+          regions={regions}
+          pendingOfflineFamiliesCount={pendingOfflineFamiliesCount}
+          offlineSyncMessage={offlineSyncMessage}
+          onBack={() => setView("entry")}
+          onFamilyCreated={async () => {
+            await loadFamilies();
+            setView("family-list");
+          }}
+          onOfflineFamilySaved={refreshPendingOfflineFamiliesCount}
+          onDownloadBackup={handleDownloadOfflineBackup}
+          onRestoreBackup={handleRestoreOfflineBackup}
+        />
+      )}
+      {view === "family-list" && (
+        <FamilyListScreen
+          families={families}
+          filteredFamilies={filteredFamilies}
+          loading={loading}
+          error={error}
+          searchTerm={searchTerm}
+          waitFilter={waitFilter}
+          statusFilter={statusFilter}
+          selectedFamily={selectedFamily}
+          agents={fieldAgents}
+          selectedDeliveryAgentId={selectedDeliveryAgentId}
+          isRegisteringDelivery={isRegisteringDelivery}
+          deliveryError={deliveryError}
+          deliverySuccess={deliverySuccess}
+          onBack={() => setView("entry")}
+          onCreateFamily={() => setView("family-create")}
+          onSearchTermChange={setSearchTerm}
+          onWaitFilterChange={setWaitFilter}
+          onStatusFilterChange={setStatusFilter}
+          onSelectFamily={setSelectedFamily}
+          onSelectDeliveryAgent={setSelectedDeliveryAgentId}
+          onRegisterDelivery={handleRegisterDelivery}
+        />
+      )}
+      {view === "resident-home" && (
+        <ResidentHomeScreen
+          residentFamily={residentFamily}
+          deliveries={residentDeliveries}
+          readyNotifications={readyNotifications}
+          onBack={() => setView("entry")}
+          onOpenComplaint={() => setView("complaint")}
+        />
+      )}
       {view === "admin-login" && (
         <AdminLogin
           onBack={() => setView("entry")}
@@ -1201,14 +690,41 @@ function App() {
       )}
       {view === "admin-home" &&
         (isAdminAuthenticated ? (
-          renderAdminHome()
+          <AdminHomeScreen
+            dashboardImpact={dashboardImpact}
+            fieldAgents={fieldAgents}
+            regions={regions}
+            regionDeliveryImpact={regionDeliveryImpact}
+            selectedRegion={selectedRegion}
+            selectedAgent={selectedAgent}
+            basketAvailabilityNotifications={basketAvailabilityNotifications}
+            isSavingRegion={isSavingRegion}
+            regionManagementError={regionManagementError}
+            regionManagementSuccess={regionManagementSuccess}
+            isSavingAgent={isSavingAgent}
+            agentManagementError={agentManagementError}
+            agentManagementSuccess={agentManagementSuccess}
+            isProcessingNotifications={isProcessingNotifications}
+            notificationsError={notificationsError}
+            notificationsSuccess={notificationsSuccess}
+            onBack={() => setView("entry")}
+            onLogout={handleAdminLogout}
+            onSelectRegion={setSelectedRegion}
+            onSelectAgent={handleSelectAgent}
+            onCreateRegion={handleCreateRegion}
+            onCreateAgent={handleCreateFieldAgent}
+            onUpdateAgent={handleUpdateFieldAgent}
+            onProcessNotifications={handleProcessBasketAvailabilityNotifications}
+          />
         ) : (
           <AdminLogin
             onBack={() => setView("entry")}
             onLoggedIn={handleAdminLoggedIn}
           />
         ))}
-      {view === "complaint" && renderComplaint()}
+      {view === "complaint" && (
+        <ComplaintScreen regions={regions} onBack={() => setView("entry")} />
+      )}
     </>
   );
 }
