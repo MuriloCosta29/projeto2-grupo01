@@ -60,18 +60,17 @@ class FamilyModelTests(TestCase):
 
 
 class RegionModelTests(TestCase):
-    def test_region_name_and_code_are_normalized(self):
-        region = Region.objects.create(nome="  zona norte  ", codigo=" ZONA NORTE ")
+    def test_region_name_is_normalized(self):
+        region = Region.objects.create(nome="  zona norte  ")
 
         self.assertEqual(region.nome, "Zona Norte")
-        self.assertEqual(region.codigo, "zona norte")
 
-    def test_duplicate_region_code_is_blocked_after_normalization(self):
-        Region.objects.create(nome="Zona Norte", codigo="zona norte")
+    def test_duplicate_region_name_is_blocked_after_normalization(self):
+        Region.objects.create(nome="Zona Norte")
 
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
-                Region.objects.create(nome="Norte", codigo=" ZONA NORTE ")
+                Region.objects.create(nome="  zona   norte  ")
 
 
 class FamilyFormTests(TestCase):
@@ -120,7 +119,7 @@ class FamilyApiTests(TestCase):
         self.assertEqual(response.json()["error"], "Região é obrigatória.")
 
     def test_family_api_creates_family_with_region(self):
-        region = Region.objects.create(nome="Norte", codigo="norte")
+        region = Region.objects.create(nome="Norte")
 
         response = self.client.post(
             "/api/families/",
@@ -147,7 +146,7 @@ class AnonymousComplaintApiTests(TestCase):
         cache.clear()
 
     def test_anonymous_complaint_can_be_registered_without_identity(self):
-        region = Region.objects.create(nome="Norte", codigo="norte")
+        region = Region.objects.create(nome="Norte")
 
         response = self.client.post(
             "/api/anonymous-complaints/",
@@ -388,8 +387,8 @@ class DashboardRegionsApiTests(TestCase):
         self.auth = admin_auth_headers()
 
     def test_dashboard_filters_deliveries_by_region(self):
-        north_region = Region.objects.create(nome="Norte", codigo="norte")
-        south_region = Region.objects.create(nome="Sul", codigo="sul")
+        north_region = Region.objects.create(nome="Norte")
+        south_region = Region.objects.create(nome="Sul")
 
         north_family = Family.objects.create(
             region=north_region,
@@ -428,8 +427,8 @@ class DashboardRegionsApiTests(TestCase):
         )
 
     def test_regions_api_lists_active_regions(self):
-        Region.objects.create(nome="Norte", codigo="norte")
-        Region.objects.create(nome="Sul", codigo="sul", ativo=False)
+        Region.objects.create(nome="Norte")
+        Region.objects.create(nome="Sul", ativo=False)
 
         response = self.client.get("/api/regions/")
 
@@ -438,9 +437,8 @@ class DashboardRegionsApiTests(TestCase):
             response.json(),
             [
                 {
-                    "id": Region.objects.get(codigo="norte").id,
+                    "id": Region.objects.get(nome="Norte").id,
                     "nome": "Norte",
-                    "codigo": "norte",
                     "ativo": True,
                 }
             ],
@@ -452,7 +450,6 @@ class DashboardRegionsApiTests(TestCase):
             data=json.dumps(
                 {
                     "nome": "  recife  ",
-                    "codigo": "",
                 }
             ),
             content_type="application/json",
@@ -463,12 +460,11 @@ class DashboardRegionsApiTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(region.nome, "Recife")
-        self.assertEqual(region.codigo, "recife")
         self.assertTrue(region.ativo)
         self.assertEqual(response.json()["nome"], "Recife")
 
     def test_regions_api_rejects_duplicate_region(self):
-        Region.objects.create(nome="Recife", codigo="recife")
+        Region.objects.create(nome="Recife")
 
         response = self.client.post(
             "/api/regions/",
@@ -484,7 +480,7 @@ class DashboardRegionsApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.json()["error"],
-            "Já existe uma região com esse nome ou código.",
+            "Já existe uma região com esse nome.",
         )
 
 
@@ -493,8 +489,8 @@ class BasketAvailabilityNotificationApiTests(TestCase):
         self.auth = admin_auth_headers()
 
     def test_processes_basket_availability_notifications_by_region(self):
-        north_region = Region.objects.create(nome="Norte", codigo="norte")
-        south_region = Region.objects.create(nome="Sul", codigo="sul")
+        north_region = Region.objects.create(nome="Norte")
+        south_region = Region.objects.create(nome="Sul")
         notified_family = Family.objects.create(
             region=north_region,
             nome_responsavel="Ana Souza",
@@ -533,7 +529,7 @@ class BasketAvailabilityNotificationApiTests(TestCase):
         self.assertIn("https://wa.me/5581999990000", notification.notification_url)
 
     def test_marks_notification_without_phone_as_no_contact(self):
-        region = Region.objects.create(nome="Norte", codigo="norte")
+        region = Region.objects.create(nome="Norte")
         Family.objects.create(
             region=region,
             nome_responsavel="Ana Souza",
@@ -562,7 +558,7 @@ class BasketAvailabilityNotificationApiTests(TestCase):
         self.assertEqual(notification.notification_url, "")
 
     def test_does_not_duplicate_same_availability_notification_batch(self):
-        region = Region.objects.create(nome="Norte", codigo="norte")
+        region = Region.objects.create(nome="Norte")
         Family.objects.create(
             region=region,
             nome_responsavel="Ana Souza",
@@ -599,7 +595,7 @@ class FieldAgentMonitoringApiTests(TestCase):
         self.auth = admin_auth_headers()
 
     def test_field_agent_can_be_created_by_coordination(self):
-        region = Region.objects.create(nome="Norte", codigo="norte")
+        region = Region.objects.create(nome="Norte")
 
         response = self.client.post(
             "/api/field-agents/",
@@ -608,7 +604,7 @@ class FieldAgentMonitoringApiTests(TestCase):
                     "region_id": region.id,
                     "nome": "joão presidente",
                     "telefone": "81999990000",
-                    "codigo_area": "Setor Norte",
+                    "area_atuacao": "Setor Norte",
                 }
             ),
             content_type="application/json",
@@ -620,13 +616,13 @@ class FieldAgentMonitoringApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(agent.nome, "João Presidente")
         self.assertEqual(agent.telefone, "81999990000")
-        self.assertEqual(agent.codigo_area, "Setor Norte")
+        self.assertEqual(agent.area_atuacao, "Setor Norte")
         self.assertEqual(agent.region, region)
         self.assertTrue(agent.ativo)
 
     def test_field_agent_can_be_updated_by_coordination(self):
         agent = FieldAgent.objects.create(nome="João Presidente")
-        region = Region.objects.create(nome="Sul", codigo="sul")
+        region = Region.objects.create(nome="Sul")
 
         response = self.client.patch(
             f"/api/field-agents/{agent.id}/",
@@ -635,7 +631,7 @@ class FieldAgentMonitoringApiTests(TestCase):
                     "region_id": region.id,
                     "nome": "joão coordenador",
                     "telefone": "81988880000",
-                    "codigo_area": "Setor Sul",
+                    "area_atuacao": "Setor Sul",
                     "ativo": False,
                 }
             ),
@@ -648,7 +644,7 @@ class FieldAgentMonitoringApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(agent.nome, "João Coordenador")
         self.assertEqual(agent.telefone, "81988880000")
-        self.assertEqual(agent.codigo_area, "Setor Sul")
+        self.assertEqual(agent.area_atuacao, "Setor Sul")
         self.assertEqual(agent.region, region)
         self.assertFalse(agent.ativo)
 
@@ -658,7 +654,7 @@ class FieldAgentMonitoringApiTests(TestCase):
             data=json.dumps(
                 {
                     "nome": "",
-                    "codigo_area": "Setor Norte",
+                    "area_atuacao": "Setor Norte",
                 }
             ),
             content_type="application/json",
@@ -671,7 +667,7 @@ class FieldAgentMonitoringApiTests(TestCase):
     def test_field_agent_monitoring_shows_attended_families_and_frequency(self):
         agent = FieldAgent.objects.create(
             nome="João Presidente",
-            codigo_area="Setor Norte",
+            area_atuacao="Setor Norte",
         )
         first_family = Family.objects.create(
             assigned_agent=agent,
@@ -797,7 +793,7 @@ class AuthApiTests(TestCase):
 
 class FamilyLookupApiTests(TestCase):
     def setUp(self):
-        self.region = Region.objects.create(nome="Zona Norte", codigo="zona norte")
+        self.region = Region.objects.create(nome="Zona Norte")
         self.family = Family.objects.create(
             nome_responsavel="Maria Da Silva",
             codigo_viela="Viela Azul",
