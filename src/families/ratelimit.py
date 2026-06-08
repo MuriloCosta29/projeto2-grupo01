@@ -11,6 +11,8 @@ from functools import wraps
 from django.core.cache import cache
 from django.http import JsonResponse
 
+from .cors import add_cors_headers
+
 
 def get_client_ip(request):
     # Render (e a maioria dos proxies) repassa o IP real no X-Forwarded-For.
@@ -36,12 +38,12 @@ def rate_limit(key_prefix, limit, window_seconds):
             current = cache.get_or_set(cache_key, 0, window_seconds)
 
             if current >= limit:
-                response = JsonResponse(
-                    {"error": "Muitas tentativas. Tente novamente mais tarde."},
-                    status=429,
+                return add_cors_headers(
+                    JsonResponse(
+                        {"error": "Muitas tentativas. Tente novamente mais tarde."},
+                        status=429,
+                    )
                 )
-                response["Access-Control-Allow-Origin"] = "*"
-                return response
 
             cache.incr(cache_key)
 

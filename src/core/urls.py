@@ -11,6 +11,8 @@ from families.views import (
     family_deliveries_api,
     field_agents_api,
     health_check,
+    login_api,
+    logout_api,
     regions_api,
 )
 
@@ -18,6 +20,8 @@ urlpatterns = [
     path("", health_check),  # Evita cair em 404.
     path("health/", health_check),
     path("admin/", admin.site.urls),
+    path("api/auth/login/", login_api),
+    path("api/auth/logout/", logout_api),
     path("api/dashboard/impact/", dashboard_impact_api),
     path("api/dashboard/regions/", dashboard_regions_api),
     path(

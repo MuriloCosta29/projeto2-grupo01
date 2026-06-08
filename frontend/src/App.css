@@ -1411,3 +1411,26 @@ button:disabled {
     height: 58px;
   }
 }
+
+/* Login da coordenação */
+.admin-login-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.admin-login-head h2 {
+  margin: 0;
+}
+
+.admin-login-head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.admin-logout-row {
+  display: flex;
+  justify-content: flex-end;
+}

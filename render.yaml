@@ -10,5 +10,7 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: CORS_ALLOWED_ORIGIN
+        value: "https://projeto2-grupo01.vercel.app"
       - key: PYTHON_VERSION
         value: "3.13.5"

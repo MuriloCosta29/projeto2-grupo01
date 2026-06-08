@@ -9,6 +9,7 @@ import {
   Download,
   FileWarning,
   ListChecks,
+  LogOut,
   MapPin,
   MessageCircle,
   PackageCheck,
@@ -31,6 +32,7 @@ import { RegionManagement } from "./components/RegionManagement";
 import { AppTopbar } from "./components/ui/AppTopbar";
 import { EmptyState } from "./components/ui/EmptyState";
 import { MetricCard } from "./components/ui/MetricCard";
+import { AdminLogin } from "./screens/AdminLogin";
 import { EntryScreen } from "./screens/EntryScreen";
 import {
   formatDate,
@@ -47,8 +49,11 @@ import {
   getFieldAgents,
   getRegionDeliveryImpact,
   getRegions,
+  getStoredAuthToken,
+  logout,
   processBasketAvailabilityNotifications,
   registerDelivery,
+  SessionExpiredError,
   updateFieldAgent,
 } from "./services/api";
 import type {
@@ -78,6 +83,7 @@ type AppView =
   | "family-create"
   | "family-list"
   | "resident-home"
+  | "admin-login"
   | "admin-home"
   | "complaint";
 
@@ -96,6 +102,9 @@ const supportWhatsappUrl = supportWhatsappNumber
 
 function App() {
   const [view, setView] = useState<AppView>("entry");
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(
+    () => getStoredAuthToken() !== null,
+  );
   const [families, setFamilies] = useState<Family[]>([]);
   const [fieldAgents, setFieldAgents] = useState<FieldAgent[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -428,6 +437,35 @@ function App() {
     setSelectedDeliveryAgentId(agent.id);
   }
 
+  function handleSelectAdmin() {
+    if (getStoredAuthToken()) {
+      setIsAdminAuthenticated(true);
+      setView("admin-home");
+      return;
+    }
+
+    setIsAdminAuthenticated(false);
+    setView("admin-login");
+  }
+
+  function handleAdminLoggedIn() {
+    setIsAdminAuthenticated(true);
+    setView("admin-home");
+  }
+
+  async function handleAdminLogout() {
+    await logout();
+    setIsAdminAuthenticated(false);
+    setView("entry");
+  }
+
+  // Chamado quando uma ação de admin recebe 401 (token expirado/inválido):
+  // volta para o login em vez de deixar o usuário preso num painel sem acesso.
+  function handleSessionExpired() {
+    setIsAdminAuthenticated(false);
+    setView("admin-login");
+  }
+
   async function handleRegisterDelivery(family: Family, agentId: number | null) {
     setIsRegisteringDelivery(true);
     setDeliveryError("");
@@ -467,6 +505,11 @@ function App() {
       );
       await loadBasketAvailabilityNotifications();
     } catch (caughtError) {
+      if (caughtError instanceof SessionExpiredError) {
+        handleSessionExpired();
+        return;
+      }
+
       if (caughtError instanceof Error) {
         setNotificationsError(caughtError.message);
         return;
@@ -488,6 +531,11 @@ function App() {
       setAgentManagementSuccess("Presidente de Rua cadastrado com sucesso.");
       await loadFieldAgents();
     } catch (caughtError) {
+      if (caughtError instanceof SessionExpiredError) {
+        handleSessionExpired();
+        return;
+      }
+
       if (caughtError instanceof Error) {
         setAgentManagementError(caughtError.message);
         return;
@@ -509,6 +557,11 @@ function App() {
       setRegionManagementSuccess("Região cadastrada com sucesso.");
       await Promise.all([loadRegions(), loadRegionDeliveryImpact()]);
     } catch (caughtError) {
+      if (caughtError instanceof SessionExpiredError) {
+        handleSessionExpired();
+        return;
+      }
+
       if (caughtError instanceof Error) {
         setRegionManagementError(caughtError.message);
         return;
@@ -533,6 +586,11 @@ function App() {
       setAgentManagementSuccess("Presidente de Rua atualizado com sucesso.");
       await loadFieldAgents();
     } catch (caughtError) {
+      if (caughtError instanceof SessionExpiredError) {
+        handleSessionExpired();
+        return;
+      }
+
       if (caughtError instanceof Error) {
         setAgentManagementError(caughtError.message);
         return;
@@ -993,10 +1051,21 @@ function App() {
           title="Administrador"
           subtitle="Gestão e governança"
           onBack={() => setView("entry")}
-          onProfileClick={() => setView("entry")}
+          onProfileClick={handleAdminLogout}
         />
 
         <section className="screen-content admin-grid">
+          <div className="admin-logout-row">
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={handleAdminLogout}
+            >
+              <LogOut size={18} />
+              Sair
+            </button>
+          </div>
+
           <section className="admin-summary">
             <MetricCard
               label="Cestas Entregues"
@@ -1105,7 +1174,7 @@ function App() {
         <EntryScreen
           onSelectPresident={() => setView("president-home")}
           onSelectResident={() => setView("resident-home")}
-          onSelectAdmin={() => setView("admin-home")}
+          onSelectAdmin={handleSelectAdmin}
           onSelectComplaint={() => setView("complaint")}
         />
       )}
@@ -1113,7 +1182,21 @@ function App() {
       {view === "family-create" && renderFamilyCreate()}
       {view === "family-list" && renderFamilyList()}
       {view === "resident-home" && renderResidentHome()}
-      {view === "admin-home" && renderAdminHome()}
+      {view === "admin-login" && (
+        <AdminLogin
+          onBack={() => setView("entry")}
+          onLoggedIn={handleAdminLoggedIn}
+        />
+      )}
+      {view === "admin-home" &&
+        (isAdminAuthenticated ? (
+          renderAdminHome()
+        ) : (
+          <AdminLogin
+            onBack={() => setView("entry")}
+            onLoggedIn={handleAdminLoggedIn}
+          />
+        ))}
       {view === "complaint" && renderComplaint()}
     </>
   );
