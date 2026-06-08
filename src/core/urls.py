@@ -7,6 +7,7 @@ from families.views import (
     dashboard_impact_api,
     dashboard_regions_api,
     families_api,
+    family_lookup_api,
     field_agent_detail_api,
     family_deliveries_api,
     field_agents_api,
@@ -32,6 +33,7 @@ urlpatterns = [
     path("api/field-agents/", field_agents_api),
     path("api/field-agents/<int:agent_id>/", field_agent_detail_api),
     path("api/regions/", regions_api),
+    path("api/families/lookup/", family_lookup_api),
     path("api/families/", families_api),
     path("api/families/<int:family_id>/deliveries/", family_deliveries_api),
 ]

@@ -793,3 +793,79 @@ class AuthApiTests(TestCase):
         )
 
         self.assertEqual(blocked.status_code, 401)
+
+
+class FamilyLookupApiTests(TestCase):
+    def setUp(self):
+        self.region = Region.objects.create(nome="Zona Norte", codigo="zona norte")
+        self.family = Family.objects.create(
+            nome_responsavel="Maria Da Silva",
+            codigo_viela="Viela Azul",
+            quantidade_moradores=3,
+            region=self.region,
+        )
+
+    def test_lookup_retorna_familia_quando_encontrada(self):
+        response = self.client.get(
+            "/api/families/lookup/",
+            {"nome_responsavel": "Maria Da Silva", "codigo_viela": "Viela Azul"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], self.family.id)
+        self.assertEqual(data["nome_responsavel"], "Maria Da Silva")
+        self.assertEqual(data["codigo_viela"], "viela azul")
+
+    def test_lookup_e_case_insensitive(self):
+        response = self.client.get(
+            "/api/families/lookup/",
+            {"nome_responsavel": "MARIA DA SILVA", "codigo_viela": "VIELA AZUL"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["id"], self.family.id)
+
+    def test_lookup_retorna_404_quando_nao_encontrada(self):
+        response = self.client.get(
+            "/api/families/lookup/",
+            {"nome_responsavel": "Nao Existe", "codigo_viela": "viela fake"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_lookup_retorna_400_sem_parametros(self):
+        response = self.client.get(
+            "/api/families/lookup/",
+            {"nome_responsavel": "Maria Da Silva"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_lookup_inclui_historico_de_entregas(self):
+        DeliveryLog.objects.create(family=self.family)
+
+        response = self.client.get(
+            "/api/families/lookup/",
+            {"nome_responsavel": "Maria Da Silva", "codigo_viela": "Viela Azul"},
+        )
+
+        data = response.json()
+        self.assertEqual(len(data["deliveries"]), 1)
+
+    def test_lookup_nao_retorna_outras_familias(self):
+        Family.objects.create(
+            nome_responsavel="Outro Morador",
+            codigo_viela="viela verde",
+            quantidade_moradores=2,
+        )
+
+        response = self.client.get(
+            "/api/families/lookup/",
+            {"nome_responsavel": "Maria Da Silva", "codigo_viela": "Viela Azul"},
+        )
+
+        data = response.json()
+        # Resposta é um objeto único, não uma lista.
+        self.assertIn("id", data)
+        self.assertNotIn("results", data)
