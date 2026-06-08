@@ -10,8 +10,7 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
-      # Troque pelo domínio real do front no Vercel (ex.: https://pilar.vercel.app)
       - key: CORS_ALLOWED_ORIGIN
-        value: "https://SEU-FRONT.vercel.app"
+        value: "https://projeto2-grupo01.vercel.app"
       - key: PYTHON_VERSION
         value: "3.13.5"
