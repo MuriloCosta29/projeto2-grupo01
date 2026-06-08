@@ -86,7 +86,6 @@ def serialize_region(region):
     return {
         "id": region.id,
         "nome": region.nome,
-        "codigo": region.codigo,
         "ativo": region.ativo,
     }
 
@@ -119,7 +118,6 @@ def regions_api(request):
         return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
 
     nome = str(payload.get("nome", "")).strip()
-    codigo = str(payload.get("codigo", "") or nome).strip()
 
     if not nome:
         return add_cors_headers(
@@ -129,13 +127,12 @@ def regions_api(request):
     try:
         region = Region.objects.create(
             nome=nome,
-            codigo=codigo,
             ativo=payload.get("ativo", True),
         )
     except IntegrityError:
         return add_cors_headers(
             JsonResponse(
-                {"error": "Já existe uma região com esse nome ou código."},
+                {"error": "Já existe uma região com esse nome."},
                 status=400,
             )
         )
@@ -156,14 +153,13 @@ def serialize_field_agent(agent):
             {
                 "id": agent.region.id,
                 "nome": agent.region.nome,
-                "codigo": agent.region.codigo,
             }
             if agent.region
             else None
         ),
         "nome": agent.nome,
         "telefone": agent.telefone,
-        "codigo_area": agent.codigo_area,
+        "area_atuacao": agent.area_atuacao,
         "ativo": agent.ativo,
         "assigned_families_count": agent.assigned_families.count(),
         "attended_families_count": len(attended_families),
@@ -238,7 +234,7 @@ def field_agents_api(request):
         region=region,
         nome=nome,
         telefone=payload.get("telefone", ""),
-        codigo_area=payload.get("codigo_area", ""),
+        area_atuacao=payload.get("area_atuacao", ""),
         ativo=payload.get("ativo", True),
     )
 
@@ -281,8 +277,8 @@ def field_agent_detail_api(request, agent_id):
     if "telefone" in payload:
         agent.telefone = payload.get("telefone", "")
 
-    if "codigo_area" in payload:
-        agent.codigo_area = payload.get("codigo_area", "")
+    if "area_atuacao" in payload:
+        agent.area_atuacao = payload.get("area_atuacao", "")
 
     if "ativo" in payload:
         agent.ativo = bool(payload.get("ativo"))
@@ -387,7 +383,6 @@ def serialize_notification(notification):
             {
                 "id": notification.region.id,
                 "nome": notification.region.nome,
-                "codigo": notification.region.codigo,
             }
             if notification.region
             else None
@@ -661,7 +656,6 @@ def family_lookup_api(request):
             {
                 "id": family.region.id,
                 "nome": family.region.nome,
-                "codigo": family.region.codigo,
             }
             if family.region
             else None
@@ -707,7 +701,6 @@ def families_api(request):
                     {
                         "id": family.region.id,
                         "nome": family.region.nome,
-                        "codigo": family.region.codigo,
                     }
                     if family.region
                     else None
@@ -781,7 +774,6 @@ def families_api(request):
                 {
                     "id": family.region.id,
                     "nome": family.region.nome,
-                    "codigo": family.region.codigo,
                 }
                 if family.region
                 else None

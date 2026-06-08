@@ -49,7 +49,7 @@ export function AgentMonitoring({
               >
                 <strong>{agent.nome}</strong>
                 <span>
-                  {agent.region?.nome ?? (agent.codigo_area || "Área não informada")}
+                  {agent.region?.nome ?? (agent.area_atuacao || "Área não informada")}
                 </span>
                 {agent.telefone && <small>{agent.telefone}</small>}
                 <small
