@@ -3,15 +3,19 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.contrib.auth import authenticate
 from django.views.generic import CreateView, TemplateView
 from django.http import JsonResponse
 import json
 from urllib.parse import quote
 
+from .auth import admin_only, require_admin
+from .cors import add_cors_headers
 from .forms import FamilyForm
 from .ratelimit import rate_limit
 from .models import (
     AnonymousComplaint,
+    AuthToken,
     BasketAvailabilityNotification,
     DeliveryLog,
     Family,
@@ -104,6 +108,10 @@ def regions_api(request):
         return add_cors_headers(
             JsonResponse({"error": "Método não permitido."}, status=405)
         )
+
+    _, error = require_admin(request)
+    if error:
+        return error
 
     try:
         payload = json.loads(request.body or "{}")
@@ -203,6 +211,10 @@ def field_agents_api(request):
             JsonResponse({"error": "Método não permitido."}, status=405)
         )
 
+    _, error = require_admin(request)
+    if error:
+        return error
+
     try:
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
@@ -234,6 +246,7 @@ def field_agents_api(request):
 
 
 @csrf_exempt
+@admin_only
 def field_agent_detail_api(request, agent_id):
     if request.method == "OPTIONS":
         return add_cors_headers(JsonResponse({}))
@@ -310,11 +323,56 @@ class FamilyCreateView(CreateView):
         return super().form_invalid(form)
 
 
-def add_cors_headers(response):
-    response["Access-Control-Allow-Origin"] = "*"
-    response["Access-Control-Allow-Methods"] = "GET, POST, PATCH, OPTIONS"
-    response["Access-Control-Allow-Headers"] = "Content-Type"
-    return response
+@csrf_exempt
+@rate_limit("login", limit=10, window_seconds=600)
+def login_api(request):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method != "POST":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return add_cors_headers(JsonResponse({"error": "JSON inválido."}, status=400))
+
+    username = str(payload.get("username", "")).strip()
+    password = str(payload.get("password", ""))
+
+    user = authenticate(username=username, password=password)
+
+    # Só staff (admin/coordenação) entra no painel.
+    if user is None or not user.is_staff:
+        return add_cors_headers(
+            JsonResponse({"error": "Credenciais inválidas."}, status=401)
+        )
+
+    token = AuthToken.objects.create(user=user)
+
+    return add_cors_headers(
+        JsonResponse(
+            {"token": token.key, "username": user.username},
+            status=201,
+        )
+    )
+
+
+@csrf_exempt
+@admin_only
+def logout_api(request):
+    if request.method != "POST":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    header = request.META.get("HTTP_AUTHORIZATION", "")
+    key = header[len("Token "):].strip()
+    AuthToken.objects.filter(key=key).delete()
+
+    return add_cors_headers(JsonResponse({"ok": True}))
 
 
 def serialize_notification(notification):
@@ -460,6 +518,10 @@ def basket_availability_notifications_api(request):
         return add_cors_headers(
             JsonResponse({"error": "Método não permitido."}, status=405)
         )
+
+    _, error = require_admin(request)
+    if error:
+        return error
 
     try:
         payload = json.loads(request.body or "{}")

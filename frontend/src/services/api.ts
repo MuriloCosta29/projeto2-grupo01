@@ -13,6 +13,89 @@ import type {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
+const AUTH_TOKEN_STORAGE_KEY = "presidente_de_rua_auth_token";
+
+export function getStoredAuthToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+function setStoredAuthToken(token: string) {
+  localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+}
+
+export function clearStoredAuthToken() {
+  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+// Monta o header de autenticação a partir do token guardado no navegador.
+function authHeaders(): Record<string, string> {
+  const token = getStoredAuthToken();
+  return token ? { Authorization: `Token ${token}` } : {};
+}
+
+// Erro lançado quando o token é inválido/expirado (HTTP 401).
+// O App usa isso para mandar o usuário de volta para a tela de login.
+export class SessionExpiredError extends Error {
+  constructor() {
+    super("Sessão expirada. Faça login novamente.");
+    this.name = "SessionExpiredError";
+  }
+}
+
+// Trata respostas de rotas protegidas: 401 limpa o token e sinaliza expiração.
+async function parseAdminResponse<T>(
+  response: Response,
+  fallbackError: string,
+): Promise<T> {
+  if (response.status === 401) {
+    clearStoredAuthToken();
+    throw new SessionExpiredError();
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error ?? fallbackError);
+  }
+
+  return response.json();
+}
+
+export type LoginResponse = {
+  token: string;
+  username: string;
+};
+
+export async function login(
+  username: string,
+  password: string,
+): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error ?? "Não foi possível entrar.");
+  }
+
+  const data: LoginResponse = await response.json();
+  setStoredAuthToken(data.token);
+  return data;
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/auth/logout/`, {
+    method: "POST",
+    headers: { ...authHeaders() },
+  }).catch(() => {
+    // Mesmo se a chamada falhar, limpamos o token localmente.
+  });
+
+  clearStoredAuthToken();
+}
+
 export async function getFamilies(): Promise<Family[]> {
   const response = await fetch(`${API_BASE_URL}/api/families/`);
 
@@ -64,16 +147,12 @@ export async function createRegion(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error ?? "Erro ao cadastrar região.");
-  }
-
-  return response.json();
+  return parseAdminResponse(response, "Erro ao cadastrar região.");
 }
 
 export async function getFieldAgents(): Promise<FieldAgent[]> {
@@ -107,16 +186,12 @@ export async function createFieldAgent(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error ?? "Erro ao cadastrar Presidente de Rua.");
-  }
-
-  return response.json();
+  return parseAdminResponse(response, "Erro ao cadastrar Presidente de Rua.");
 }
 
 export async function updateFieldAgent(
@@ -127,16 +202,12 @@ export async function updateFieldAgent(
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error ?? "Erro ao atualizar Presidente de Rua.");
-  }
-
-  return response.json();
+  return parseAdminResponse(response, "Erro ao atualizar Presidente de Rua.");
 }
 
 export async function getBasketAvailabilityNotifications(): Promise<
@@ -203,17 +274,13 @@ export async function processBasketAvailabilityNotifications(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
       body: JSON.stringify(payload),
     },
   );
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error ?? "Erro ao processar notificações.");
-  }
-
-  return response.json();
+  return parseAdminResponse(response, "Erro ao processar notificações.");
 }
 
 export type CreateAnonymousComplaintPayload = {
