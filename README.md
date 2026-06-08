@@ -1,3 +1,154 @@
+# PILAR — Sistema de Distribuição de Cestas Básicas
+
+Plataforma de apoio à distribuição de cestas básicas em comunidades, construída
+para o fluxo do **Presidente de Rua** (G10 Favelas). O sistema organiza o
+cadastro de famílias em áreas sem CEP oficial, prioriza quem está há mais tempo
+sem receber, registra entregas e dá transparência ao morador — funcionando até
+**offline**, já que a operação acontece em campo, muitas vezes sem sinal.
+
+> **Status acadêmico:** projeto de 2º semestre. A sprint atual **não foi
+> concluída** — itens pendentes e bugs estão registrados no Jira (ver
+> [Gestão do Projeto](#gestão-do-projeto)).
+
+---
+
+## Funcionalidades principais
+
+### 👷 Presidente de Rua (operação em campo)
+- **Cadastro de famílias** mesmo sem CEP oficial, usando o "Código da Viela".
+- **Prevenção de duplicidade**: bloqueia cadastro de mesma família (nome + viela).
+- **Fila de prioridade** ordenada automaticamente por tempo de espera.
+- **Registro rápido de entrega** de cesta, atualizando a fila na hora.
+- **Histórico de entregas** por família.
+- **Filtros operacionais** por status de recebimento e tempo de espera.
+- **Modo offline**: cadastros são salvos no dispositivo e **sincronizados**
+  quando a internet volta, com **backup/restore** em arquivo.
+- **Suporte via WhatsApp** com um toque.
+
+### 🛡️ Administrador (governança)
+- **Dashboard de impacto** (total de cestas entregues).
+- **Entregas por região** com filtro gerencial.
+- **Gestão de regiões** e de **Presidentes de Rua** (cadastro/edição/status).
+- **Monitoramento de agentes** em campo (famílias atendidas, frequência).
+- **Disparo de avisos** de cesta disponível (mensagem pronta para WhatsApp).
+- Acesso protegido por **autenticação por token** (somente staff).
+
+### 🏠 Morador (transparência)
+- **Identificação pelo próprio cadastro** (nome + código da viela).
+- **Histórico de cestas** recebidas e **notificações** de disponibilidade.
+- **Ouvidoria anônima**: denúncia sem login, com protocolo de acompanhamento e
+  proteção **anti-spam** (rate limit por IP).
+
+---
+
+## Tecnologias
+
+| Camada | Stack |
+|--------|-------|
+| **Backend** | Python 3.13, Django 6, Gunicorn, WhiteNoise |
+| **Banco** | PostgreSQL (produção) · SQLite (desenvolvimento) |
+| **Frontend** | React 19, TypeScript, Vite |
+| **Testes** | Django `TestCase` (backend) · Vitest + jsdom (frontend) |
+| **Deploy** | Render (API) · Vercel (SPA) |
+
+---
+
+## Utilizamos alguma API?
+
+O projeto **expõe a sua própria API REST** (backend Django), consumida pela SPA
+em React. **Não consumimos nenhuma API externa de terceiros**: o contato por
+WhatsApp é feito via *deep links* `https://wa.me/...` (links diretos, sem chave
+de API nem integração paga).
+
+Principais endpoints internos:
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `POST` | `/api/auth/login/` | Login (retorna token de admin) |
+| `GET/POST` | `/api/families/` | Lista / cadastra famílias |
+| `GET` | `/api/families/lookup/` | Morador localiza o próprio cadastro |
+| `POST` | `/api/families/<id>/deliveries/` | Registra entrega |
+| `GET/POST` | `/api/regions/` | Regiões |
+| `GET/POST` | `/api/field-agents/` | Presidentes de Rua |
+| `GET` | `/api/dashboard/impact/` · `/api/dashboard/regions/` | Indicadores |
+| `POST` | `/api/anonymous-complaints/` | Ouvidoria anônima |
+| `GET/POST` | `/api/basket-availability-notifications/` | Avisos de cesta |
+
+---
+
+## Como rodar localmente
+
+### Backend (Django)
+```bash
+cd src
+python -m venv .venv && source .venv/bin/activate
+pip install -r ../requirements.txt
+python manage.py migrate
+python manage.py runserver   # http://127.0.0.1:8000
+```
+
+### Frontend (React + Vite)
+```bash
+cd frontend
+npm install
+npm run dev                  # http://localhost:5173
+```
+
+Variáveis de ambiente do frontend (opcionais — têm padrão):
+
+| Variável | Padrão | Uso |
+|----------|--------|-----|
+| `VITE_API_BASE_URL` | `http://127.0.0.1:8000` | URL da API |
+| `VITE_SUPPORT_WHATSAPP_NUMBER` | *(vazio)* | Número de suporte |
+
+### Usuário padrão para testes
+
+Para acessar o painel de **Administrador**, crie o usuário staff:
+
+```bash
+cd src
+DJANGO_SUPERUSER_USERNAME=admin \
+DJANGO_SUPERUSER_EMAIL=admin@exemplo.com \
+DJANGO_SUPERUSER_PASSWORD=admin123 \
+python manage.py create_admin_user
+```
+
+| Campo | Valor |
+|-------|-------|
+| **Usuário** | `admin` |
+| **Senha** | `admin123` |
+
+> ⚠️ Credenciais apenas para **ambiente de testes/avaliação**. Em produção, use
+> uma senha forte definida por variável de ambiente.
+
+---
+
+## Protótipo (Lo-fi)
+
+Protótipo de baixa fidelidade no Figma:
+
+<!-- TODO: inserir o link do protótipo de baixa fidelidade no Figma -->
+🔗 **[Protótipo no Figma](INSERIR_LINK_AQUI)**
+
+---
+
+## Gestão do Projeto
+
+Acompanhamento de tarefas e sprints no **Jira**. A sprint atual **não foi
+concluída** — parte das histórias ficou pendente e os bugs encontrados estão
+registrados no bug tracker.
+
+<!-- TODO: inserir os prints do Jira (board/sprint) e do bug tracker -->
+**Board / Sprint (Jira):**
+
+![Board do Jira](INSERIR_PRINT_AQUI)
+
+**Bug tracker:**
+
+![Bug tracker](INSERIR_PRINT_AQUI)
+
+---
+
 # Histórias de Usuário
 
 ---
