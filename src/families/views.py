@@ -615,6 +615,82 @@ def basket_availability_notifications_api(request):
 
 
 @csrf_exempt
+def family_lookup_api(request):
+    """Identifica um morador pelo próprio registro (nome + código da viela).
+
+    Recebe `nome_responsavel` e `codigo_viela` como query params e devolve
+    somente os dados daquela família — sem expor o cadastro completo do banco.
+    A comparação é case-insensitive para tolerar variações de digitação.
+    """
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
+    if request.method != "GET":
+        return add_cors_headers(
+            JsonResponse({"error": "Método não permitido."}, status=405)
+        )
+
+    nome = request.GET.get("nome_responsavel", "").strip()
+    viela = request.GET.get("codigo_viela", "").strip()
+
+    if not nome or not viela:
+        return add_cors_headers(
+            JsonResponse(
+                {"error": "Nome e código da viela são obrigatórios."},
+                status=400,
+            )
+        )
+
+    try:
+        family = (
+            Family.objects.select_related("region")
+            .prefetch_related("deliveries")
+            .get(
+                nome_responsavel__iexact=nome,
+                codigo_viela__iexact=viela,
+            )
+        )
+    except Family.DoesNotExist:
+        return add_cors_headers(
+            JsonResponse({"error": "Cadastro não encontrado."}, status=404)
+        )
+
+    data = {
+        "id": family.id,
+        "region": (
+            {
+                "id": family.region.id,
+                "nome": family.region.nome,
+                "codigo": family.region.codigo,
+            }
+            if family.region
+            else None
+        ),
+        "nome_responsavel": family.nome_responsavel,
+        "telefone": family.telefone,
+        "codigo_viela": family.codigo_viela,
+        "complemento": family.complemento,
+        "bairro": family.bairro,
+        "cep": family.cep,
+        "cidade": family.cidade,
+        "estado": family.estado,
+        "quantidade_moradores": family.quantidade_moradores,
+        "observacoes": family.observacoes,
+        "deliveries": [
+            {
+                "id": delivery.id,
+                "delivery_date": delivery.delivery_date.isoformat(),
+                "notes": delivery.notes,
+                "created_at": delivery.created_at.isoformat(),
+            }
+            for delivery in family.deliveries.all()
+        ],
+    }
+
+    return add_cors_headers(JsonResponse(data))
+
+
+@csrf_exempt
 def families_api(request):
     if request.method == "OPTIONS":
         return add_cors_headers(JsonResponse({}))

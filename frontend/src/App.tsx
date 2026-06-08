@@ -34,6 +34,7 @@ import { EmptyState } from "./components/ui/EmptyState";
 import { MetricCard } from "./components/ui/MetricCard";
 import { AdminLogin } from "./screens/AdminLogin";
 import { EntryScreen } from "./screens/EntryScreen";
+import { ResidentLookup } from "./screens/ResidentLookup";
 import {
   formatDate,
   getWaitingDays,
@@ -82,6 +83,7 @@ type AppView =
   | "president-home"
   | "family-create"
   | "family-list"
+  | "resident-lookup"
   | "resident-home"
   | "admin-login"
   | "admin-home"
@@ -194,7 +196,7 @@ function App() {
     });
   }, [families, searchTerm, statusFilter, waitFilter]);
 
-  const residentFamily = families[0] ?? null;
+  const [residentFamily, setResidentFamily] = useState<Family | null>(null);
   const residentDeliveries = residentFamily?.deliveries ?? [];
   const readyNotifications = basketAvailabilityNotifications.filter(
     (notification) => notification.status === "ready",
@@ -1173,9 +1175,18 @@ function App() {
       {view === "entry" && (
         <EntryScreen
           onSelectPresident={() => setView("president-home")}
-          onSelectResident={() => setView("resident-home")}
+          onSelectResident={() => setView("resident-lookup")}
           onSelectAdmin={handleSelectAdmin}
           onSelectComplaint={() => setView("complaint")}
+        />
+      )}
+      {view === "resident-lookup" && (
+        <ResidentLookup
+          onBack={() => setView("entry")}
+          onFound={(family) => {
+            setResidentFamily(family);
+            setView("resident-home");
+          }}
         />
       )}
       {view === "president-home" && renderPresidentHome()}

@@ -106,6 +106,21 @@ export async function getFamilies(): Promise<Family[]> {
   return response.json();
 }
 
+export async function lookupFamily(
+  nome_responsavel: string,
+  codigo_viela: string,
+): Promise<Family> {
+  const params = new URLSearchParams({ nome_responsavel, codigo_viela });
+  const response = await fetch(`${API_BASE_URL}/api/families/lookup/?${params}`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error ?? "Cadastro não encontrado.");
+  }
+
+  return response.json();
+}
+
 export async function getDashboardImpact(): Promise<DashboardImpact> {
   const response = await fetch(`${API_BASE_URL}/api/dashboard/impact/`);
 
