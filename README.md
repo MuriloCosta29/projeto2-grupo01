@@ -1,4 +1,4 @@
-# PILAR — Sistema de Distribuição de Cestas Básicas
+# PILAR — Sistema para o Presidente de Rua
 
 Plataforma de apoio à distribuição de cestas básicas em comunidades, construída
 para o fluxo do **Presidente de Rua** (G10 Favelas). O sistema organiza o
@@ -6,15 +6,12 @@ cadastro de famílias em áreas sem CEP oficial, prioriza quem está há mais te
 sem receber, registra entregas e dá transparência ao morador — funcionando até
 **offline**, já que a operação acontece em campo, muitas vezes sem sinal.
 
-> **Status acadêmico:** projeto de 2º semestre. A sprint atual **não foi
-> concluída** — itens pendentes e bugs estão registrados no Jira (ver
-> [Gestão do Projeto](#gestão-do-projeto)).
-
 ---
 
 ## Funcionalidades principais
 
 ### 👷 Presidente de Rua (operação em campo)
+
 - **Cadastro de famílias** mesmo sem CEP oficial, usando o "Código da Viela".
 - **Prevenção de duplicidade**: bloqueia cadastro de mesma família (nome + viela).
 - **Fila de prioridade** ordenada automaticamente por tempo de espera.
@@ -26,6 +23,7 @@ sem receber, registra entregas e dá transparência ao morador — funcionando a
 - **Suporte via WhatsApp** com um toque.
 
 ### 🛡️ Administrador (governança)
+
 - **Dashboard de impacto** (total de cestas entregues).
 - **Entregas por região** com filtro gerencial.
 - **Gestão de regiões** e de **Presidentes de Rua** (cadastro/edição/status).
@@ -34,6 +32,7 @@ sem receber, registra entregas e dá transparência ao morador — funcionando a
 - Acesso protegido por **autenticação por token** (somente staff).
 
 ### 🏠 Morador (transparência)
+
 - **Identificação pelo próprio cadastro** (nome + código da viela).
 - **Histórico de cestas** recebidas e **notificações** de disponibilidade.
 - **Ouvidoria anônima**: denúncia sem login, com protocolo de acompanhamento e
@@ -53,12 +52,11 @@ sem receber, registra entregas e dá transparência ao morador — funcionando a
 
 ---
 
-## Utilizamos alguma API?
+## API
 
-O projeto **expõe a sua própria API REST** (backend Django), consumida pela SPA
-em React. **Não consumimos nenhuma API externa de terceiros**: o contato por
-WhatsApp é feito via *deep links* `https://wa.me/...` (links diretos, sem chave
-de API nem integração paga).
+O sistema **expõe a própria API REST** (Django), consumida pela SPA em React.
+**Não há consumo de API externa de terceiros** — o contato por WhatsApp usa
+apenas *deep links* `wa.me` (sem chave de API).
 
 Principais endpoints internos:
 
@@ -79,15 +77,32 @@ Principais endpoints internos:
 ## Como rodar localmente
 
 ### Backend (Django)
+
+**macOS / Linux:**
+
 ```bash
 cd src
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r ../requirements.txt
 python manage.py migrate
 python manage.py runserver   # http://127.0.0.1:8000
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+cd src
+python -m venv .venv; .venv\Scripts\Activate.ps1
+pip install -r ..\requirements.txt
+python manage.py migrate
+python manage.py runserver   # http://127.0.0.1:8000
+```
+
+> No Windows, se o PowerShell bloquear a ativação do venv, rode uma vez:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
 ### Frontend (React + Vite)
+
 ```bash
 cd frontend
 npm install
@@ -105,11 +120,23 @@ Variáveis de ambiente do frontend (opcionais — têm padrão):
 
 Para acessar o painel de **Administrador**, crie o usuário staff:
 
+**macOS / Linux:**
+
 ```bash
 cd src
 DJANGO_SUPERUSER_USERNAME=admin \
 DJANGO_SUPERUSER_EMAIL=admin@exemplo.com \
 DJANGO_SUPERUSER_PASSWORD=admin123 \
+python manage.py create_admin_user
+```
+
+**Windows (PowerShell):**
+
+```powershell
+cd src
+$env:DJANGO_SUPERUSER_USERNAME="admin"
+$env:DJANGO_SUPERUSER_EMAIL="admin@exemplo.com"
+$env:DJANGO_SUPERUSER_PASSWORD="admin123"
 python manage.py create_admin_user
 ```
 
@@ -123,12 +150,31 @@ python manage.py create_admin_user
 
 ---
 
-## Protótipo (Lo-fi)
+## Links do projeto
 
-Protótipo de baixa fidelidade no Figma:
+| Recurso | Link |
+|---------|------|
+| 🌐 **Google Site** | [Acessar](https://sites.google.com/d/1K02Hrw1STtLezyLiWoKHnTY4T30FAAjo/p/1mZhvYlT0TZYnwLNyzLGIB6OC51nWcoOn/edit?pli=1) |
+| 🎬 **Screencast** — demonstração das histórias implementadas | [Assistir](INSERIR_LINK_SCREENCAST) |
+| 🎨 **Protótipo Lo-fi / Sketches (Figma)** | [Abrir](INSERIR_LINK_FIGMA) |
 
-<!-- TODO: inserir o link do protótipo de baixa fidelidade no Figma -->
-🔗 **[Protótipo no Figma](INSERIR_LINK_AQUI)**
+---
+
+## Metodologia e Programação em Par
+
+O desenvolvimento seguiu um fluxo de **branches por funcionalidade + revisão por
+Pull Request**: cada item (autenticação, identificação do morador, refatorações,
+limpeza de modelo etc.) entrou na `main` por um PR isolado, com histórico
+rastreável no Git.
+
+**Por que não utilizamos Programação em Par (Pair Programming):** o pareamento
+síncrono pressupõe dois integrantes na mesma tarefa, ao mesmo tempo, na mesma
+tela. Na prática, a disponibilidade da equipe não era simultânea — as janelas de
+trabalho dos integrantes raramente coincidiam —, o que tornou o pareamento
+contínuo inviável. Optamos por uma colaboração **assíncrona**, quebrando o
+trabalho em tarefas pequenas e integrando via Pull Request com revisão. Esse
+modelo se adequou melhor à rotina do grupo e preservou o registro de cada
+decisão técnica no histórico do repositório.
 
 ---
 
@@ -138,14 +184,13 @@ Acompanhamento de tarefas e sprints no **Jira**. A sprint atual **não foi
 concluída** — parte das histórias ficou pendente e os bugs encontrados estão
 registrados no bug tracker.
 
-<!-- TODO: inserir os prints do Jira (board/sprint) e do bug tracker -->
 **Board / Sprint (Jira):**
 
-![Board do Jira](INSERIR_PRINT_AQUI)
+![Board do Jira](./assets/jira-board.png)
 
 **Bug tracker:**
 
-![Bug tracker](INSERIR_PRINT_AQUI)
+![Bug tracker](./assets/bug-tracker.png)
 
 ---
 
@@ -156,48 +201,56 @@ registrados no bug tracker.
 ## Persona: Presidente de Rua
 
 ### Cenário 1 - Cadastro de família em área sem CEP oficial
+
 **Dado** que o Presidente de Rua acessa o formulário de nova família,  
 **Quando** ele preenche os dados usando apenas o "Código da Viela" e deixa o campo CEP em branco,  
 **Então** o sistema deve validar o cadastro normalmente,  
 **E** deve exibir uma mensagem de "Família mapeada com sucesso".
 
 ### Cenário 2 - Prevenção de cadastro duplicado
+
 **Dado** que o Presidente de Rua preenche o formulário com dados muito similares a alguém já existente (ex: mesmo nome e viela),  
 **Quando** ele finaliza o cadastro clicando em salvar,  
 **Então** o sistema deve interromper a ação automaticamente,  
 **E** deve exibir um alerta informando "Atenção: Possível duplicidade de morador encontrada".
 
 ### Cenário 3 - Consulta de histórico de entregas
+
 **Dado** que o Presidente de Rua acessa o perfil de uma família cadastrada,  
 **Quando** ele clica na aba de histórico,  
 **Então** o sistema deve exibir a lista completa de datas em que a família recebeu cestas,  
 **E** o Presidente de Rua poderá avaliar se a doação é justa.
 
 ### Cenário 4 - Ordenação da fila de prioridades por urgência
+
 **Dado** que o Presidente de Rua acessa a tela de fila de prioridade,  
 **Quando** o sistema carrega a lista de famílias cadastradas naquela região,  
 **Então** a lista deve ser ordenada automaticamente pelo sistema,  
 **E** as famílias com maior número de dias sem receber devem aparecer no topo da tela.
 
 ### Cenário 5 - Registro rápido de entrega de cesta básica
+
 **Dado** que o Presidente de Rua está visualizando a fila de prioridades,  
 **Quando** ele clica no botão "Confirmar Entrega" ao lado do nome do morador,  
 **Então** o sistema deve atualizar a data de recebimento da família para o dia atual no banco de dados,  
 **E** o morador deve sumir da lista de urgências.
 
 ### Cenário 6 - Salvamento de dados sem conexão de internet (Modo Offline)
+
 **Dado** que o Presidente de Rua perdeu o sinal de internet (4G) durante a rota,  
 **Quando** ele realiza e salva o cadastro de uma família no aplicativo,  
 **Então** o sistema deve armazenar os dados temporariamente no cache do celular,  
 **E** deve exibir uma mensagem informando que "Os dados serão sincronizados quando a internet voltar".
 
 ### Cenário 7 - Acesso rápido ao suporte operacional
+
 **Dado** que o Presidente de Rua está com uma dúvida urgente durante a entrega,  
 **Quando** ele clica no botão de "Ajuda" no aplicativo,  
 **Então** o sistema deve redirecioná-lo automaticamente para o WhatsApp,  
 **E** deve abrir uma conversa direta com o número oficial de suporte do G10 Favelas.
 
 ### Cenário 12 - Filtragem operacional do status de recebimento na rua
+
 **Dado** que o Presidente de Rua possui uma lista extensa de famílias no aplicativo,  
 **Quando** ele seleciona o filtro "Já Receberam",  
 **Então** o sistema deve ocultar as famílias que ainda precisam de cesta,  
@@ -208,18 +261,21 @@ registrados no bug tracker.
 ## Persona: Administrador (Governança)
 
 ### Cenário 8 - Visualização do impacto de distribuição
+
 **Dado** que o Administrador acessa o painel de controle do sistema,  
 **Quando** a página principal (Dashboard) é carregada,  
 **Então** o sistema deve calcular automaticamente as doações do banco de dados,  
 **E** deve exibir o número total de cestas distribuídas naquele mês.
 
 ### Cenário 9 - Monitoramento dos agentes em campo
+
 **Dado** que o Administrador acessa a aba de "Agentes",  
 **Quando** ele seleciona o perfil de um Presidente de Rua,  
 **Então** o sistema deve exibir a região de cobertura desse agente,  
 **E** a quantidade de entregas que ele realizou no período.
 
 ### Cenário 13 - Filtragem gerencial de entregas por região
+
 **Dado** que o Administrador está no painel de controle,  
 **Quando** ele seleciona uma comunidade específica no filtro de regiões,  
 **Então** o sistema deve recalcular os dados exibidos,  
@@ -230,12 +286,14 @@ registrados no bug tracker.
 ## Persona: Morador (Transparência)
 
 ### Cenário 10 - Notificação automática de disponibilidade de cesta
+
 **Dado** que o sistema identificou que chegou o dia da entrega na região da família,  
 **Quando** o Presidente de Rua ou Administrador libera o lote de cestas no sistema,  
 **Então** o sistema deve disparar um aviso automático (via SMS/WhatsApp) para o morador,  
 **E** deve informar a data, horário e o local exato da retirada.
 
 ### Cenário 11 - Registro de denúncia anônima na ouvidoria
+
 **Dado** que o morador acessa o link de denúncias do sistema sem realizar login,  
 **Quando** ele preenche a reclamação e clica em enviar,  
 **Então** o sistema deve salvar a denúncia no banco de dados sem atrelar nenhum IP ou nome,  
