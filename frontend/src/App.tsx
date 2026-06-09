@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import "./App.css";
 import { AdminLogin } from "./screens/AdminLogin";
@@ -53,17 +54,6 @@ import type {
   RegionDeliveryImpact,
 } from "./types";
 
-type AppView =
-  | "entry"
-  | "president-home"
-  | "family-create"
-  | "family-list"
-  | "resident-lookup"
-  | "resident-home"
-  | "admin-login"
-  | "admin-home"
-  | "complaint";
-
 const supportWhatsappNumber = import.meta.env.VITE_SUPPORT_WHATSAPP_NUMBER ?? "";
 
 const supportMessage = encodeURIComponent(
@@ -75,7 +65,8 @@ const supportWhatsappUrl = supportWhatsappNumber
   : `https://wa.me/?text=${supportMessage}`;
 
 function App() {
-  const [view, setView] = useState<AppView>("entry");
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(
     () => getStoredAuthToken() !== null,
   );
@@ -404,7 +395,7 @@ function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
-  }, [view]);
+  }, [location.pathname]);
 
   function handleSelectAgent(agent: FieldAgent) {
     setSelectedAgent(agent);
@@ -412,32 +403,26 @@ function App() {
   }
 
   function handleSelectAdmin() {
-    if (getStoredAuthToken()) {
-      setIsAdminAuthenticated(true);
-      setView("admin-home");
-      return;
-    }
-
-    setIsAdminAuthenticated(false);
-    setView("admin-login");
+    // A guarda da rota /admin redireciona para o login se não autenticado.
+    navigate("/admin");
   }
 
   function handleAdminLoggedIn() {
     setIsAdminAuthenticated(true);
-    setView("admin-home");
+    navigate("/admin");
   }
 
   async function handleAdminLogout() {
     await logout();
     setIsAdminAuthenticated(false);
-    setView("entry");
+    navigate("/");
   }
 
   // Chamado quando uma ação de admin recebe 401 (token expirado/inválido):
   // volta para o login em vez de deixar o usuário preso num painel sem acesso.
   function handleSessionExpired() {
     setIsAdminAuthenticated(false);
-    setView("admin-login");
+    navigate("/admin/login");
   }
 
   async function handleRegisterDelivery(family: Family, agentId: number | null) {
@@ -598,133 +583,170 @@ function App() {
         </div>
       )}
 
-      {view === "entry" && (
-        <EntryScreen
-          onSelectPresident={() => setView("president-home")}
-          onSelectResident={() => setView("resident-lookup")}
-          onSelectAdmin={handleSelectAdmin}
-          onSelectComplaint={() => setView("complaint")}
-        />
-      )}
-      {view === "resident-lookup" && (
-        <ResidentLookup
-          onBack={() => setView("entry")}
-          onFound={(family) => {
-            setResidentFamily(family);
-            setView("resident-home");
-          }}
-        />
-      )}
-      {view === "president-home" && (
-        <PresidentHomeScreen
-          families={families}
-          todaysDeliveriesCount={todaysDeliveriesCount}
-          familiesWaitingMoreThan30DaysCount={
-            familiesWaitingMoreThan30Days.length
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <EntryScreen
+              onSelectPresident={() => navigate("/presidente")}
+              onSelectResident={() => navigate("/morador/identificar")}
+              onSelectAdmin={handleSelectAdmin}
+              onSelectComplaint={() => navigate("/ouvidoria")}
+            />
           }
-          agentName={selectedAgent?.nome}
-          supportWhatsappUrl={supportWhatsappUrl}
-          onBack={() => setView("entry")}
-          onCreateFamily={() => setView("family-create")}
-          onViewFamilies={() => setView("family-list")}
-          onSelectFamily={(family) => {
-            setSelectedFamily(family);
-            setView("family-list");
-          }}
         />
-      )}
-      {view === "family-create" && (
-        <FamilyCreateScreen
-          regions={regions}
-          pendingOfflineFamiliesCount={pendingOfflineFamiliesCount}
-          offlineSyncMessage={offlineSyncMessage}
-          onBack={() => setView("entry")}
-          onFamilyCreated={async () => {
-            await loadFamilies();
-            setView("family-list");
-          }}
-          onOfflineFamilySaved={refreshPendingOfflineFamiliesCount}
-          onDownloadBackup={handleDownloadOfflineBackup}
-          onRestoreBackup={handleRestoreOfflineBackup}
+        <Route
+          path="/presidente"
+          element={
+            <PresidentHomeScreen
+              families={families}
+              todaysDeliveriesCount={todaysDeliveriesCount}
+              familiesWaitingMoreThan30DaysCount={
+                familiesWaitingMoreThan30Days.length
+              }
+              agentName={selectedAgent?.nome}
+              supportWhatsappUrl={supportWhatsappUrl}
+              onBack={() => navigate("/")}
+              onCreateFamily={() => navigate("/presidente/familias/nova")}
+              onViewFamilies={() => navigate("/presidente/familias")}
+              onSelectFamily={(family) => {
+                setSelectedFamily(family);
+                navigate("/presidente/familias");
+              }}
+            />
+          }
         />
-      )}
-      {view === "family-list" && (
-        <FamilyListScreen
-          families={families}
-          filteredFamilies={filteredFamilies}
-          loading={loading}
-          error={error}
-          searchTerm={searchTerm}
-          waitFilter={waitFilter}
-          statusFilter={statusFilter}
-          selectedFamily={selectedFamily}
-          agents={fieldAgents}
-          selectedDeliveryAgentId={selectedDeliveryAgentId}
-          isRegisteringDelivery={isRegisteringDelivery}
-          deliveryError={deliveryError}
-          deliverySuccess={deliverySuccess}
-          onBack={() => setView("entry")}
-          onCreateFamily={() => setView("family-create")}
-          onSearchTermChange={setSearchTerm}
-          onWaitFilterChange={setWaitFilter}
-          onStatusFilterChange={setStatusFilter}
-          onSelectFamily={setSelectedFamily}
-          onSelectDeliveryAgent={setSelectedDeliveryAgentId}
-          onRegisterDelivery={handleRegisterDelivery}
+        <Route
+          path="/presidente/familias/nova"
+          element={
+            <FamilyCreateScreen
+              regions={regions}
+              pendingOfflineFamiliesCount={pendingOfflineFamiliesCount}
+              offlineSyncMessage={offlineSyncMessage}
+              onBack={() => navigate("/presidente")}
+              onFamilyCreated={async () => {
+                await loadFamilies();
+                navigate("/presidente/familias");
+              }}
+              onOfflineFamilySaved={refreshPendingOfflineFamiliesCount}
+              onDownloadBackup={handleDownloadOfflineBackup}
+              onRestoreBackup={handleRestoreOfflineBackup}
+            />
+          }
         />
-      )}
-      {view === "resident-home" && (
-        <ResidentHomeScreen
-          residentFamily={residentFamily}
-          deliveries={residentDeliveries}
-          readyNotifications={readyNotifications}
-          onBack={() => setView("entry")}
-          onOpenComplaint={() => setView("complaint")}
+        <Route
+          path="/presidente/familias"
+          element={
+            <FamilyListScreen
+              families={families}
+              filteredFamilies={filteredFamilies}
+              loading={loading}
+              error={error}
+              searchTerm={searchTerm}
+              waitFilter={waitFilter}
+              statusFilter={statusFilter}
+              selectedFamily={selectedFamily}
+              agents={fieldAgents}
+              selectedDeliveryAgentId={selectedDeliveryAgentId}
+              isRegisteringDelivery={isRegisteringDelivery}
+              deliveryError={deliveryError}
+              deliverySuccess={deliverySuccess}
+              onBack={() => navigate("/presidente")}
+              onCreateFamily={() => navigate("/presidente/familias/nova")}
+              onSearchTermChange={setSearchTerm}
+              onWaitFilterChange={setWaitFilter}
+              onStatusFilterChange={setStatusFilter}
+              onSelectFamily={setSelectedFamily}
+              onSelectDeliveryAgent={setSelectedDeliveryAgentId}
+              onRegisterDelivery={handleRegisterDelivery}
+            />
+          }
         />
-      )}
-      {view === "admin-login" && (
-        <AdminLogin
-          onBack={() => setView("entry")}
-          onLoggedIn={handleAdminLoggedIn}
+        <Route
+          path="/morador/identificar"
+          element={
+            <ResidentLookup
+              onBack={() => navigate("/")}
+              onFound={(family) => {
+                setResidentFamily(family);
+                navigate("/morador");
+              }}
+            />
+          }
         />
-      )}
-      {view === "admin-home" &&
-        (isAdminAuthenticated ? (
-          <AdminHomeScreen
-            dashboardImpact={dashboardImpact}
-            fieldAgents={fieldAgents}
-            regions={regions}
-            regionDeliveryImpact={regionDeliveryImpact}
-            selectedRegion={selectedRegion}
-            selectedAgent={selectedAgent}
-            basketAvailabilityNotifications={basketAvailabilityNotifications}
-            isSavingRegion={isSavingRegion}
-            regionManagementError={regionManagementError}
-            regionManagementSuccess={regionManagementSuccess}
-            isSavingAgent={isSavingAgent}
-            agentManagementError={agentManagementError}
-            agentManagementSuccess={agentManagementSuccess}
-            isProcessingNotifications={isProcessingNotifications}
-            notificationsError={notificationsError}
-            notificationsSuccess={notificationsSuccess}
-            onBack={() => setView("entry")}
-            onLogout={handleAdminLogout}
-            onSelectRegion={setSelectedRegion}
-            onSelectAgent={handleSelectAgent}
-            onCreateRegion={handleCreateRegion}
-            onCreateAgent={handleCreateFieldAgent}
-            onUpdateAgent={handleUpdateFieldAgent}
-            onProcessNotifications={handleProcessBasketAvailabilityNotifications}
-          />
-        ) : (
-          <AdminLogin
-            onBack={() => setView("entry")}
-            onLoggedIn={handleAdminLoggedIn}
-          />
-        ))}
-      {view === "complaint" && (
-        <ComplaintScreen regions={regions} onBack={() => setView("entry")} />
-      )}
+        <Route
+          path="/morador"
+          element={
+            residentFamily ? (
+              <ResidentHomeScreen
+                residentFamily={residentFamily}
+                deliveries={residentDeliveries}
+                readyNotifications={readyNotifications}
+                onBack={() => navigate("/")}
+                onOpenComplaint={() => navigate("/ouvidoria")}
+              />
+            ) : (
+              // Acesso direto à URL sem ter se identificado: manda pro lookup.
+              <Navigate to="/morador/identificar" replace />
+            )
+          }
+        />
+        <Route
+          path="/admin/login"
+          element={
+            <AdminLogin
+              onBack={() => navigate("/")}
+              onLoggedIn={handleAdminLoggedIn}
+            />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            isAdminAuthenticated ? (
+              <AdminHomeScreen
+                dashboardImpact={dashboardImpact}
+                fieldAgents={fieldAgents}
+                regions={regions}
+                regionDeliveryImpact={regionDeliveryImpact}
+                selectedRegion={selectedRegion}
+                selectedAgent={selectedAgent}
+                basketAvailabilityNotifications={basketAvailabilityNotifications}
+                isSavingRegion={isSavingRegion}
+                regionManagementError={regionManagementError}
+                regionManagementSuccess={regionManagementSuccess}
+                isSavingAgent={isSavingAgent}
+                agentManagementError={agentManagementError}
+                agentManagementSuccess={agentManagementSuccess}
+                isProcessingNotifications={isProcessingNotifications}
+                notificationsError={notificationsError}
+                notificationsSuccess={notificationsSuccess}
+                onBack={() => navigate("/")}
+                onLogout={handleAdminLogout}
+                onSelectRegion={setSelectedRegion}
+                onSelectAgent={handleSelectAgent}
+                onCreateRegion={handleCreateRegion}
+                onCreateAgent={handleCreateFieldAgent}
+                onUpdateAgent={handleUpdateFieldAgent}
+                onProcessNotifications={
+                  handleProcessBasketAvailabilityNotifications
+                }
+              />
+            ) : (
+              // Guarda: sem autenticação, vai pro login.
+              <Navigate to="/admin/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/ouvidoria"
+          element={
+            <ComplaintScreen regions={regions} onBack={() => navigate("/")} />
+          }
+        />
+        {/* Qualquer rota desconhecida volta para a tela inicial. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   );
 }
