@@ -156,25 +156,8 @@ python manage.py create_admin_user
 |---------|------|
 | 🌐 **Google Site** | [Acessar](https://sites.google.com/d/1K02Hrw1STtLezyLiWoKHnTY4T30FAAjo/p/1mZhvYlT0TZYnwLNyzLGIB6OC51nWcoOn/edit?pli=1) |
 | 🎬 **Screencast** — demonstração das histórias implementadas | [Assistir](INSERIR_LINK_SCREENCAST) |
-| 🎨 **Protótipo Lo-fi / Sketches (Figma)** | [Abrir](INSERIR_LINK_FIGMA) |
-
----
-
-## Metodologia e Programação em Par
-
-O desenvolvimento seguiu um fluxo de **branches por funcionalidade + revisão por
-Pull Request**: cada item (autenticação, identificação do morador, refatorações,
-limpeza de modelo etc.) entrou na `main` por um PR isolado, com histórico
-rastreável no Git.
-
-**Por que não utilizamos Programação em Par (Pair Programming):** o pareamento
-síncrono pressupõe dois integrantes na mesma tarefa, ao mesmo tempo, na mesma
-tela. Na prática, a disponibilidade da equipe não era simultânea — as janelas de
-trabalho dos integrantes raramente coincidiam —, o que tornou o pareamento
-contínuo inviável. Optamos por uma colaboração **assíncrona**, quebrando o
-trabalho em tarefas pequenas e integrando via Pull Request com revisão. Esse
-modelo se adequou melhor à rotina do grupo e preservou o registro de cada
-decisão técnica no histórico do repositório.
+| 🎨 **Protótipo Lo-fi / Sketches (Figma)** | [Abrir](https://www.figma.com/make/OLxWYt3DGh4MAeKJfjIJqW/Sistema-de-Cadastro-Familiar?p=f&t=bo1uluQfLFscRidW-0&preview-route=%2Fcomplaints) |
+| 📄 **Relatório programação em par** | [Acessar](https://docs.google.com/document/d/1CGdkkM_KJb4NJE_wdBCkO6A7CC9Yr_HkX7Qvm2_AMs0/edit?tab=t.0) |
 
 ---
 
@@ -280,6 +263,13 @@ registrados no bug tracker.
 **Quando** ele seleciona uma comunidade específica no filtro de regiões,  
 **Então** o sistema deve recalcular os dados exibidos,  
 **E** deve mostrar apenas o histórico e o volume de cestas entregues naquela localidade escolhida.
+
+### Cenário 14 - Gestão de Presidentes de Rua
+
+**Dado** que o Administrador acessa a área de gestão de Presidentes de Rua,  
+**Quando** ele cadastra, edita ou desativa um Presidente de Rua,  
+**Então** o sistema deve registrar a alteração no banco de dados,  
+**E** apenas os Presidentes ativos devem permanecer vinculados às operações em campo.
 
 ---
 
