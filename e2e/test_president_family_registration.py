@@ -27,7 +27,7 @@ django.setup()
 from families.models import Family, Region  # noqa: E402
 
 
-FRONTEND_URL = os.environ.get("E2E_FRONTEND_URL", "http://127.0.0.1:5173")
+FRONTEND_URL = os.environ.get("E2E_FRONTEND_URL", "http://localhost:5173")
 BACKEND_URL = os.environ.get("E2E_BACKEND_URL", "http://127.0.0.1:8000")
 HEADLESS = os.environ.get("SELENIUM_HEADLESS", "1") != "0"
 

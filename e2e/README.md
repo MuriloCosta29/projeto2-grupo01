@@ -42,7 +42,7 @@ npm run dev
 Frontend esperado:
 
 ```txt
-http://127.0.0.1:5173
+http://localhost:5173
 ```
 
 ## Rodar o E2E
@@ -51,6 +51,12 @@ Na raiz do projeto:
 
 ```bash
 python -m unittest e2e.test_president_family_registration
+```
+
+Se o Vite subir em outro host ou porta, informe a URL manualmente:
+
+```bash
+E2E_FRONTEND_URL=http://127.0.0.1:5173 python -m unittest e2e.test_president_family_registration
 ```
 
 ## Rodar vendo o navegador
