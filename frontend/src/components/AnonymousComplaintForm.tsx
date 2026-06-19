@@ -77,7 +77,7 @@ export function AnonymousComplaintForm({ regions }: AnonymousComplaintFormProps)
   }
 
   return (
-    <section className="panel anonymous-complaint">
+    <section className="panel anonymous-complaint" data-testid="anonymous-complaint">
       <div className="panel-header">
         <div>
           <p className="eyebrow">US11</p>
@@ -135,7 +135,7 @@ export function AnonymousComplaintForm({ regions }: AnonymousComplaintFormProps)
           />
         </label>
 
-        <button type="submit" disabled={isSubmitting}>
+        <button type="submit" data-testid="complaint-submit" disabled={isSubmitting}>
           {isSubmitting ? "Registrando..." : "Registrar denúncia"}
         </button>
       </form>
