@@ -110,7 +110,10 @@ export function FieldAgentManagement({
 
   return (
     <>
-      <section className="panel field-agent-management">
+      <section
+        className="panel field-agent-management"
+        data-testid="field-agent-create"
+      >
         <div className="panel-header">
           <div>
             <p className="eyebrow">US14</p>
@@ -161,6 +164,7 @@ export function FieldAgentManagement({
           <button
             type="submit"
             className="agent-submit-button"
+            data-testid="field-agent-submit"
             disabled={isSaving}
           >
             Cadastrar Presidente

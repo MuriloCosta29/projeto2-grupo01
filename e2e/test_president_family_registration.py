@@ -1,127 +1,53 @@
-import os
-import sys
-import unittest
-import uuid
-from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
+"""Fluxo E2E do Presidente de Rua.
 
-from selenium import webdriver
+Cobre as duas ações operacionais centrais do perfil:
+
+1. cadastrar uma família e vê-la entrar na fila de prioridade;
+2. registrar a entrega de uma cesta para uma família existente.
+
+O nome do arquivo é mantido por compatibilidade com o comando histórico
+`python -m unittest e2e.test_president_family_registration`.
+"""
+
+import unittest
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.select import Select
-from selenium.webdriver.support.ui import WebDriverWait
+
+from e2e.support import PilarE2ETestCase
+from families.models import DeliveryLog, Family
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = PROJECT_ROOT / "src"
-
-sys.path.insert(0, str(SRC_DIR))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-
-import django  # noqa: E402
-
-
-django.setup()
-
-from families.models import Family, Region  # noqa: E402
-
-
-FRONTEND_URL = os.environ.get("E2E_FRONTEND_URL", "http://localhost:5173")
-BACKEND_URL = os.environ.get("E2E_BACKEND_URL", "http://127.0.0.1:8000")
-HEADLESS = os.environ.get("SELENIUM_HEADLESS", "1") != "0"
-
-
-def assert_service_is_running(url: str) -> None:
-    try:
-        with urlopen(url, timeout=5) as response:
-            if response.status >= 400:
-                raise AssertionError(f"Serviço respondeu com HTTP {response.status}: {url}")
-    except URLError as error:
-        raise AssertionError(
-            f"Serviço indisponível em {url}. "
-            "Suba o backend e o frontend antes de rodar o E2E."
-        ) from error
-
-
-class PresidentFamilyRegistrationE2ETests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        assert_service_is_running(f"{BACKEND_URL}/health/")
-        assert_service_is_running(FRONTEND_URL)
-
-        options = webdriver.ChromeOptions()
-        options.add_argument("--window-size=1440,1100")
-
-        if HEADLESS:
-            options.add_argument("--headless=new")
-
-        cls.driver = webdriver.Chrome(options=options)
-        cls.wait = WebDriverWait(cls.driver, 15)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.driver.quit()
-
-    def setUp(self):
-        suffix = uuid.uuid4().hex[:8]
-        self.region = Region.objects.create(nome=f"Recife Selenium {suffix}")
-        self.region.refresh_from_db()
-
-        self.family_name = f"Responsavel Selenium {suffix}"
-        self.alley_code = f"Viela Selenium {suffix}"
-        self.normalized_family_name = " ".join(self.family_name.split()).title()
-        self.normalized_alley_code = " ".join(self.alley_code.split()).lower()
-
-    def tearDown(self):
-        Family.objects.filter(
-            nome_responsavel=self.normalized_family_name,
-            codigo_viela=self.normalized_alley_code,
-        ).delete()
-        self.region.delete()
-
+class PresidentFlowE2ETests(PilarE2ETestCase):
     def test_president_can_register_family_and_see_it_in_the_queue(self):
-        self.driver.get(FRONTEND_URL)
+        self.report_step("Abrindo o PILAR")
+        self.open_app()
 
-        self.wait.until(
-            EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    "//button[.//strong[normalize-space()='Presidente de Rua']]",
-                )
-            )
-        ).click()
+        self.report_step("Selecionando perfil Presidente de Rua")
+        self.click_testid("entry-president")
 
-        self.wait.until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "//button[.//strong[normalize-space()='Cadastrar Família']]")
-            )
-        ).click()
+        self.report_step("Abrindo cadastro de família")
+        self.click_button_containing("Cadastrar Família")
 
-        self.wait.until(EC.presence_of_element_located((By.NAME, "nome_responsavel")))
+        self.report_step("Preenchendo dados da família")
+        self.fill_field("nome_responsavel", self.family_name)
+        self.fill_field("quantidade_moradores", "4")
+        self.fill_field("telefone", "81999990000")
+        self.fill_field("codigo_viela", self.alley_code)
 
-        self.driver.find_element(By.NAME, "nome_responsavel").send_keys(
-            self.family_name
-        )
-        self.driver.find_element(By.NAME, "quantidade_moradores").send_keys("4")
-        self.driver.find_element(By.NAME, "telefone").send_keys("81999990000")
-        self.driver.find_element(By.NAME, "codigo_viela").send_keys(self.alley_code)
-        self.driver.find_element(By.NAME, "cep").send_keys("")
+        self.report_step("Selecionando região")
+        self.select_by_text(By.NAME, "region_id", self.region.nome)
 
-        region_select = self.driver.find_element(By.NAME, "region_id")
-        self.wait.until(lambda _: self.region.nome in region_select.text)
-        Select(region_select).select_by_visible_text(self.region.nome)
+        self.report_step("Salvando família")
+        self.click_button_containing("Salvar família")
 
-        self.driver.find_element(By.XPATH, "//button[normalize-space()='Salvar família']").click()
+        self.report_step("Validando redirecionamento para lista")
+        self.wait_url_contains("/presidente/familias")
 
-        self.wait.until(EC.url_contains("/presidente/familias"))
-        self.wait.until(
-            EC.text_to_be_present_in_element(
-                (By.TAG_NAME, "body"),
-                self.normalized_family_name,
-            )
-        )
+        self.report_step("Validando família na interface")
+        self.wait_for_text(self.normalized_family_name)
 
+        self.report_step("Validando família no banco")
         self.assertTrue(
             Family.objects.filter(
                 nome_responsavel=self.normalized_family_name,
@@ -129,6 +55,109 @@ class PresidentFamilyRegistrationE2ETests(unittest.TestCase):
                 region=self.region,
             ).exists()
         )
+
+    def test_president_can_register_a_delivery_from_the_family_list(self):
+        # Família existente sem entrega: o teste valida o registro pela interface.
+        family = Family.objects.create(
+            region=self.region,
+            nome_responsavel=self.family_name,
+            telefone="81999990000",
+            quantidade_moradores=4,
+            codigo_viela=self.alley_code,
+        )
+        self.assertEqual(family.deliveries.count(), 0)
+
+        self.report_step("Abrindo o PILAR")
+        self.open_app()
+
+        self.report_step("Selecionando perfil Presidente de Rua")
+        self.click_testid("entry-president")
+
+        self.report_step("Abrindo a lista de famílias")
+        self.click_button_containing("Ver Famílias")
+        self.wait_url_contains("/presidente/familias")
+
+        self.report_step("Filtrando pela família de teste")
+        self.type_text(
+            By.CSS_SELECTOR,
+            ".search-field input",
+            self.normalized_family_name,
+        )
+
+        self.report_step("Selecionando a família na fila")
+        self.click_button_containing(self.normalized_family_name)
+
+        self.report_step("Confirmando a entrega da cesta")
+        # Espera o painel de detalhes da família selecionada antes de confirmar.
+        self.wait.until(
+            EC.text_to_be_present_in_element(
+                (By.CSS_SELECTOR, ".family-detail-header"),
+                self.normalized_family_name,
+            )
+        )
+        self.click_testid("confirm-delivery")
+
+        self.report_step("Validando feedback de sucesso")
+        self.wait_for_text("Entrega registrada com sucesso.")
+
+        self.report_step("Validando entrega no banco")
+        self.assertTrue(
+            DeliveryLog.objects.filter(family=family).exists(),
+            "Esperava uma entrega registrada para a família de teste.",
+        )
+
+
+    def test_president_can_register_family_offline_when_network_is_down(self):
+        self.report_step("Abrindo o PILAR")
+        self.open_app()
+
+        self.report_step("Selecionando perfil Presidente de Rua")
+        self.click_testid("entry-president")
+
+        self.report_step("Abrindo cadastro de família")
+        self.click_button_containing("Cadastrar Família")
+
+        # As regiões precisam ter carregado (online) antes de simular a queda,
+        # senão o <select> fica vazio e o teste não reflete o uso real.
+        self.report_step("Garantindo região disponível antes de cair a rede")
+        self.select_by_text(By.NAME, "region_id", self.region.nome)
+
+        try:
+            self.report_step("Simulando perda de conexão")
+            self.set_network_offline(True)
+
+            self.report_step("Preenchendo dados da família offline")
+            self.fill_field("nome_responsavel", self.family_name)
+            self.fill_field("quantidade_moradores", "4")
+            self.fill_field("telefone", "81999990000")
+            self.fill_field("codigo_viela", self.alley_code)
+
+            self.report_step("Salvando família sem conexão")
+            self.click_button_containing("Salvar família")
+
+            self.report_step("Validando salvamento local")
+            self.wait_for_text(
+                "Sem conexão. Cadastro salvo localmente para sincronização futura."
+            )
+            self.wait_for_text("cadastro(s) offline aguardando sincronização")
+
+            # Enquanto offline, o backend não pode ter recebido nada. Validamos
+            # aqui dentro do `try`, de propósito: ao restaurar a rede no
+            # `finally`, o app dispara a sincronização automática (listener do
+            # evento "online"), o que persistiria o cadastro e tornaria esta
+            # checagem uma corrida.
+            self.report_step("Validando que nada foi persistido no banco enquanto offline")
+            self.assertFalse(
+                Family.objects.filter(
+                    nome_responsavel=self.normalized_family_name
+                ).exists(),
+                "Cadastro offline não deve ir ao banco antes da sincronização.",
+            )
+        finally:
+            # Restaura a rede mesmo se a asserção falhar, para não contaminar
+            # os próximos testes da classe. O cadastro pendente é sincronizado
+            # automaticamente e limpo no tearDown pelo marcador do teste.
+            self.set_network_offline(False)
 
 
 if __name__ == "__main__":
