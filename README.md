@@ -155,8 +155,8 @@ python manage.py create_admin_user
 | Recurso | Link |
 |---------|------|
 | 🌐 **Google Site** | [Acessar](https://sites.google.com/d/1K02Hrw1STtLezyLiWoKHnTY4T30FAAjo/p/1mZhvYlT0TZYnwLNyzLGIB6OC51nWcoOn/edit?pli=1) |
-| 🎬 **Screencast** — demonstração das histórias implementadas | [Assistir]([INSERIR_LINK_SCREENCAST](https://youtu.be/JBuNqv0ek4k)) |
-|🎬 **Screencast dos testes** — demonstração das histórias implementadas | [Assistir]([(https://youtu.be/JBuNqv0ek4k)](https://youtu.be/OHSQqUgYW2A)) |
+| 🎬 **Screencast** — demonstração das histórias implementadas | [Assistir](https://youtu.be/JBuNqv0ek4k) |
+|🎬 **Screencast dos testes** — demonstração das histórias implementadas | [Assistir](https://youtu.be/JBuNqv0ek4k) |
 | 🎨 **Protótipo Lo-fi / Sketches (Figma)** | [Abrir](https://www.figma.com/make/OLxWYt3DGh4MAeKJfjIJqW/Sistema-de-Cadastro-Familiar?p=f&t=bo1uluQfLFscRidW-0&preview-route=%2Fcomplaints) |
 | 📄 **Relatório programação em par** | [Acessar](https://docs.google.com/document/d/1CGdkkM_KJb4NJE_wdBCkO6A7CC9Yr_HkX7Qvm2_AMs0/edit?tab=t.0) |
 
