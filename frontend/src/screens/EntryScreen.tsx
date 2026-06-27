@@ -22,7 +22,12 @@ export function EntryScreen({
         </div>
 
         <div className="role-grid" aria-label="Selecionar perfil">
-          <button type="button" className="role-card" onClick={onSelectPresident}>
+          <button
+            type="button"
+            className="role-card"
+            data-testid="entry-president"
+            onClick={onSelectPresident}
+          >
             <span className="tile-icon">
               <Users size={34} />
             </span>
@@ -30,7 +35,12 @@ export function EntryScreen({
             <small>Cadastrar e entregar cestas básicas</small>
           </button>
 
-          <button type="button" className="role-card" onClick={onSelectResident}>
+          <button
+            type="button"
+            className="role-card"
+            data-testid="entry-resident"
+            onClick={onSelectResident}
+          >
             <span className="tile-icon">
               <User size={34} />
             </span>
@@ -38,7 +48,12 @@ export function EntryScreen({
             <small>Monitorar seu histórico</small>
           </button>
 
-          <button type="button" className="role-card" onClick={onSelectAdmin}>
+          <button
+            type="button"
+            className="role-card"
+            data-testid="entry-admin"
+            onClick={onSelectAdmin}
+          >
             <span className="tile-icon">
               <Shield size={34} />
             </span>
@@ -50,6 +65,7 @@ export function EntryScreen({
         <button
           type="button"
           className="complaint-entry"
+          data-testid="entry-complaint"
           onClick={onSelectComplaint}
         >
           <FileWarning size={22} />

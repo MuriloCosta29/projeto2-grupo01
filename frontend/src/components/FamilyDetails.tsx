@@ -67,6 +67,7 @@ export function FamilyDetails({
 
         <button
           type="button"
+          data-testid="confirm-delivery"
           onClick={() => onRegisterDelivery(family, selectedDeliveryAgentId)}
           disabled={isRegisteringDelivery}
         >

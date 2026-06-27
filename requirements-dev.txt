@@ -1,2 +1,3 @@
 -r requirements.txt
 django-stubs
+selenium>=4.34,<5

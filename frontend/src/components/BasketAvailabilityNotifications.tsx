@@ -63,7 +63,7 @@ export function BasketAvailabilityNotifications({
   }
 
   return (
-    <section className="panel basket-notifications">
+    <section className="panel basket-notifications" data-testid="basket-availability">
       <div className="panel-header">
         <div>
           <p className="eyebrow">US10</p>
@@ -120,7 +120,11 @@ export function BasketAvailabilityNotifications({
           />
         </label>
 
-        <button type="submit" disabled={isProcessing || regions.length === 0}>
+        <button
+          type="submit"
+          data-testid="basket-availability-submit"
+          disabled={isProcessing || regions.length === 0}
+        >
           {isProcessing ? "Processando..." : "Processar avisos"}
         </button>
       </form>

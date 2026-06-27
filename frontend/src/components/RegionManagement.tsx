@@ -44,7 +44,7 @@ export function RegionManagement({
   }
 
   return (
-    <section className="panel region-management">
+    <section className="panel region-management" data-testid="region-management">
       <div className="panel-header">
         <div>
           <p className="eyebrow">Admin</p>
@@ -71,7 +71,7 @@ export function RegionManagement({
           />
         </label>
 
-        <button type="submit" disabled={isSaving}>
+        <button type="submit" data-testid="region-submit" disabled={isSaving}>
           {isSaving ? "Cadastrando..." : "Cadastrar Região"}
         </button>
       </form>
