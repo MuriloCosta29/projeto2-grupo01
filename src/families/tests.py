@@ -1,7 +1,10 @@
 import json
+from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
@@ -27,6 +30,35 @@ def admin_auth_headers(username="coordenacao"):
     )
     token = AuthToken.objects.create(user=user)
     return {"HTTP_AUTHORIZATION": f"Token {token.key}"}
+
+
+class CreateAdminUserCommandTests(TestCase):
+    @patch.dict("os.environ", {}, clear=True)
+    def test_command_creates_default_demo_admin(self):
+        output = StringIO()
+
+        call_command("create_admin_user", stdout=output)
+
+        user = get_user_model().objects.get(username="admin")
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password("admin123"))
+        self.assertIn("criado com sucesso", output.getvalue())
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_command_restores_demo_admin_credentials(self):
+        user = get_user_model().objects.create_user(
+            username="admin",
+            password="senha-antiga",
+            is_staff=False,
+        )
+
+        call_command("create_admin_user", stdout=StringIO())
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password("admin123"))
 
 
 class FamilyModelTests(TestCase):
@@ -789,6 +821,15 @@ class AuthApiTests(TestCase):
         )
 
         self.assertEqual(blocked.status_code, 401)
+
+    def test_logout_allows_cors_preflight(self):
+        response = self.client.options("/api/auth/logout/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Access-Control-Allow-Headers"],
+            "Content-Type, Authorization",
+        )
 
 
 class FamilyLookupApiTests(TestCase):

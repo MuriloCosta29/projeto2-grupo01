@@ -422,7 +422,7 @@ function App() {
   // volta para o login em vez de deixar o usuário preso num painel sem acesso.
   function handleSessionExpired() {
     setIsAdminAuthenticated(false);
-    navigate("/admin/login");
+    navigate("/");
   }
 
   async function handleRegisterDelivery(family: Family, agentId: number | null) {
@@ -587,6 +587,16 @@ function App() {
         <Route
           path="/"
           element={
+            isAdminAuthenticated ? (
+              <Navigate to="/admin" replace />
+            ) : (
+              <AdminLogin isGlobal onLoggedIn={handleAdminLoggedIn} />
+            )
+          }
+        />
+        <Route
+          path="/perfis"
+          element={
             <EntryScreen
               onSelectPresident={() => navigate("/presidente")}
               onSelectResident={() => navigate("/morador/identificar")}
@@ -606,7 +616,7 @@ function App() {
               }
               agentName={selectedAgent?.nome}
               supportWhatsappUrl={supportWhatsappUrl}
-              onBack={() => navigate("/")}
+              onBack={() => navigate("/perfis")}
               onCreateFamily={() => navigate("/presidente/familias/nova")}
               onViewFamilies={() => navigate("/presidente/familias")}
               onSelectFamily={(family) => {
@@ -666,7 +676,7 @@ function App() {
           path="/morador/identificar"
           element={
             <ResidentLookup
-              onBack={() => navigate("/")}
+              onBack={() => navigate("/perfis")}
               onFound={(family) => {
                 setResidentFamily(family);
                 navigate("/morador");
@@ -682,7 +692,7 @@ function App() {
                 residentFamily={residentFamily}
                 deliveries={residentDeliveries}
                 readyNotifications={readyNotifications}
-                onBack={() => navigate("/")}
+                onBack={() => navigate("/perfis")}
                 onOpenComplaint={() => navigate("/ouvidoria")}
               />
             ) : (
@@ -693,12 +703,7 @@ function App() {
         />
         <Route
           path="/admin/login"
-          element={
-            <AdminLogin
-              onBack={() => navigate("/")}
-              onLoggedIn={handleAdminLoggedIn}
-            />
-          }
+          element={<Navigate to="/" replace />}
         />
         <Route
           path="/admin"
@@ -721,7 +726,7 @@ function App() {
                 isProcessingNotifications={isProcessingNotifications}
                 notificationsError={notificationsError}
                 notificationsSuccess={notificationsSuccess}
-                onBack={() => navigate("/")}
+                onBack={() => navigate("/perfis")}
                 onLogout={handleAdminLogout}
                 onSelectRegion={setSelectedRegion}
                 onSelectAgent={handleSelectAgent}
@@ -734,14 +739,17 @@ function App() {
               />
             ) : (
               // Guarda: sem autenticação, vai pro login.
-              <Navigate to="/admin/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/ouvidoria"
           element={
-            <ComplaintScreen regions={regions} onBack={() => navigate("/")} />
+            <ComplaintScreen
+              regions={regions}
+              onBack={() => navigate("/perfis")}
+            />
           }
         />
         {/* Qualquer rota desconhecida volta para a tela inicial. */}

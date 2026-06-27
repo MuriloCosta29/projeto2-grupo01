@@ -359,6 +359,9 @@ def login_api(request):
 @csrf_exempt
 @admin_only
 def logout_api(request):
+    if request.method == "OPTIONS":
+        return add_cors_headers(JsonResponse({}))
+
     if request.method != "POST":
         return add_cors_headers(
             JsonResponse({"error": "Método não permitido."}, status=405)

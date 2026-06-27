@@ -21,7 +21,7 @@ from families.models import DeliveryLog, Family
 class PresidentFlowE2ETests(PilarE2ETestCase):
     def test_president_can_register_family_and_see_it_in_the_queue(self):
         self.report_step("Abrindo o PILAR")
-        self.open_app()
+        self.open_app("/perfis")
 
         self.report_step("Selecionando perfil Presidente de Rua")
         self.click_testid("entry-president")
@@ -68,7 +68,7 @@ class PresidentFlowE2ETests(PilarE2ETestCase):
         self.assertEqual(family.deliveries.count(), 0)
 
         self.report_step("Abrindo o PILAR")
-        self.open_app()
+        self.open_app("/perfis")
 
         self.report_step("Selecionando perfil Presidente de Rua")
         self.click_testid("entry-president")
@@ -109,7 +109,7 @@ class PresidentFlowE2ETests(PilarE2ETestCase):
 
     def test_president_can_register_family_offline_when_network_is_down(self):
         self.report_step("Abrindo o PILAR")
-        self.open_app()
+        self.open_app("/perfis")
 
         self.report_step("Selecionando perfil Presidente de Rua")
         self.click_testid("entry-president")

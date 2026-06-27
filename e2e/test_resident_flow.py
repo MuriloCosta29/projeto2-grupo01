@@ -29,7 +29,7 @@ class ResidentFlowE2ETests(PilarE2ETestCase):
         )
 
         self.report_step("Abrindo o PILAR")
-        self.open_app()
+        self.open_app("/perfis")
 
         self.report_step("Selecionando perfil Morador")
         self.click_testid("entry-resident")
@@ -56,7 +56,7 @@ class ResidentFlowE2ETests(PilarE2ETestCase):
         )
 
         self.report_step("Abrindo o PILAR")
-        self.open_app()
+        self.open_app("/perfis")
 
         self.report_step("Abrindo a ouvidoria anônima")
         self.click_testid("entry-complaint")
