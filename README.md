@@ -118,15 +118,12 @@ Variáveis de ambiente do frontend (opcionais — têm padrão):
 
 ### Usuário padrão para testes
 
-Para acessar o painel de **Administrador**, crie o usuário staff:
+Para acessar o painel de **Administrador**, garanta o usuário de demonstração:
 
 **macOS / Linux:**
 
 ```bash
 cd src
-DJANGO_SUPERUSER_USERNAME=admin \
-DJANGO_SUPERUSER_EMAIL=admin@exemplo.com \
-DJANGO_SUPERUSER_PASSWORD=admin123 \
 python manage.py create_admin_user
 ```
 
@@ -134,9 +131,6 @@ python manage.py create_admin_user
 
 ```powershell
 cd src
-$env:DJANGO_SUPERUSER_USERNAME="admin"
-$env:DJANGO_SUPERUSER_EMAIL="admin@exemplo.com"
-$env:DJANGO_SUPERUSER_PASSWORD="admin123"
 python manage.py create_admin_user
 ```
 
@@ -148,6 +142,9 @@ python manage.py create_admin_user
 > ⚠️ Credenciais apenas para **ambiente de testes/avaliação**. Em produção, use
 > uma senha forte definida por variável de ambiente.
 
+As variáveis `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL` e
+`DJANGO_SUPERUSER_PASSWORD` podem sobrescrever os valores de demonstração.
+
 ---
 
 ## Links do projeto
@@ -155,7 +152,6 @@ python manage.py create_admin_user
 | Recurso | Link |
 |---------|------|
 | 🌐 **Google Site** | [Acessar](https://sites.google.com/d/1K02Hrw1STtLezyLiWoKHnTY4T30FAAjo/p/1mZhvYlT0TZYnwLNyzLGIB6OC51nWcoOn/edit?pli=1) |
-| 🎬 **Screencast** — demonstração das histórias implementadas | [Assistir](INSERIR_LINK_SCREENCAST) |
 | 🎨 **Protótipo Lo-fi / Sketches (Figma)** | [Abrir](https://www.figma.com/make/OLxWYt3DGh4MAeKJfjIJqW/Sistema-de-Cadastro-Familiar?p=f&t=bo1uluQfLFscRidW-0&preview-route=%2Fcomplaints) |
 | 📄 **Relatório programação em par** | [Acessar](https://docs.google.com/document/d/1CGdkkM_KJb4NJE_wdBCkO6A7CC9Yr_HkX7Qvm2_AMs0/edit?tab=t.0) |
 

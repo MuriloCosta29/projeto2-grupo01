@@ -200,7 +200,7 @@ button:disabled {
   line-height: 1.1;
 }
 
-.brand-lockup span {
+.brand-lockup > div > span {
   display: block;
   margin-top: 6px;
   color: var(--muted);
@@ -208,8 +208,15 @@ button:disabled {
 }
 
 .brand-icon {
+  flex: 0 0 48px;
   width: 48px;
   height: 48px;
+  margin: 0;
+}
+
+.brand-icon svg {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .icon-button {
@@ -1428,6 +1435,31 @@ button:disabled {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.demo-credentials {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 12px 18px;
+  align-items: center;
+  margin-bottom: 20px;
+  border: 1px solid #a5e7ef;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #ecfeff;
+  color: var(--navy);
+}
+
+.demo-credentials span {
+  color: var(--cyan-dark);
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .demo-credentials {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 
 .admin-logout-row {
